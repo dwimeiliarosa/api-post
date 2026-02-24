@@ -57,7 +57,7 @@ const deleteUploadedFiles = async (files) => {
 
 /**
  * @swagger
- * /posts:
+ * /api/posts:
  *   get:
  *     summary: Ambil semua postingan
  *     tags: [Posts]
@@ -82,7 +82,7 @@ router.get('/posts', async (req, res) => {
 
 /**
  * @swagger
- * /posts:
+ * /api/posts:
  *   post:
  *     summary: Buat postingan baru
  *     tags: [Posts]
@@ -203,7 +203,7 @@ if (categoryCheck.rows.length === 0) {
 
 /**
  * @swagger
- * /posts/{id}:
+ * /api/posts/{id}:
  *   put:
  *     summary: Update postingan
  *     tags: [Posts]
@@ -248,13 +248,11 @@ router.put('/posts/:id', async (req, res) => {
   }
 });
 
-/* =========================
-   DELETE POST
-========================= */
+/*DELETE POST*/
 
 /**
  * @swagger
- * /posts/{id}:
+ * /api/posts/{id}:
  *   delete:
  *     summary: Hapus postingan
  *     tags: [Posts]
