@@ -9,16 +9,25 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Sistem API backend berbasis Node.js dan Express yang menyediakan fitur manajemen postingan (CRUD) dan sistem autentikasi pengguna menggunakan JWT (JSON Web Token) serta hashing password dengan Argon2.",
   "dependencies": {
     "argon2": "^0.44.0",
     "dotenv": "^17.3.1",
-    "express": "^5.2.1",
+    "express": "^4.22.1",
+    "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",
     "pg": "^8.18.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dwimeiliarosa/api-post.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dwimeiliarosa/api-post/issues"
+  },
+  "homepage": "https://github.com/dwimeiliarosa/api-post#readme"
 }

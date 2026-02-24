@@ -10,9 +10,7 @@ const uploadPath = path.join(__dirname, '../public/images');
 if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
 }
-/* =========================
-   MULTER CONFIG
-========================= */
+/* MULTER CONFIG*/
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadPath),
@@ -36,10 +34,7 @@ router.use((err, req, res, next) => {
   next(err);
 });
 
-/* =========================
-   HELPER FUNCTION
-   HAPUS FILE JIKA VALIDASI GAGAL
-========================= */
+/* HELPER FUNCTION HAPUS FILE JIKA VALIDASI GAGAL*/
 
 const deleteUploadedFiles = async (files) => {
   if (!files) return;
@@ -58,9 +53,7 @@ const deleteUploadedFiles = async (files) => {
   }
 };
 
-/* =========================
-   GET POSTS
-========================= */
+/*GET POSTS*/
 
 /**
  * @swagger
@@ -68,21 +61,24 @@ const deleteUploadedFiles = async (files) => {
  *   get:
  *     summary: Ambil semua postingan
  *     tags: [Posts]
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil data postingan
  */
 router.get('/posts', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM posts ORDER BY id ASC'
-    );
+  `SELECT posts.*, categories.name AS category_name 
+   FROM posts 
+   LEFT JOIN categories 
+   ON posts.category_id = categories.id 
+   ORDER BY posts.id ASC`
+);
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
-
-/* =========================
-   CREATE POST
-========================= */
 
 /**
  * @swagger
@@ -101,12 +97,19 @@ router.get('/posts', async (req, res) => {
  *                 type: string
  *               isi:
  *                 type: string
+ *               category_id:
+ *                 type: integer
  *               gambar:
  *                 type: string
  *                 format: binary
  *               file:
  *                 type: string
  *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Post berhasil dibuat
+ *       400:
+ *         description: Validasi gagal
  */
 
 router.post(
@@ -117,9 +120,12 @@ router.post(
   ]),
   async (req, res) => {
     try {
-      const { judul, isi } = req.body;
+      console.log(req.body);
+      console.log(req.files);
+      const { judul, isi, category_id } = req.body;
       const gambar = req.files?.gambar?.[0];
       const fileUpload = req.files?.file?.[0];
+      
 
       const errors = [];
 
@@ -136,6 +142,9 @@ router.post(
 
       if (!fileUpload)
         errors.push('File wajib diupload');
+      
+      if (!category_id)
+        errors.push('Category wajib dipilih');
 
       // Jika validasi gagal → hapus file & tolak request
       if (errors.length > 0) {
@@ -147,15 +156,28 @@ router.post(
           errors
         });
       }
+const categoryCheck = await pool.query(
+  'SELECT * FROM categories WHERE id=$1',
+  [category_id]
+);
 
+if (categoryCheck.rows.length === 0) {
+  await deleteUploadedFiles(req.files);
+
+  return res.status(400).json({
+    status: 'error',
+    message: 'Category tidak ditemukan'
+  });
+}
       // Insert ke database
       const result = await pool.query(
-        'INSERT INTO posts (judul, isi, gambar, file) VALUES ($1,$2,$3,$4) RETURNING *',
+        'INSERT INTO posts (judul, isi, gambar, file, category_id) VALUES ($1,$2,$3,$4,$5) RETURNING *',
         [
           judul.trim(),
           isi.trim(),
           gambar.filename,
-          fileUpload.filename
+          fileUpload.filename,
+          category_id
         ]
       );
 
@@ -189,14 +211,37 @@ router.post(
 router.put('/posts/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { judul, isi } = req.body;
+    const { judul, isi, category_id } = req.body;
 
-    const result = await pool.query(
-      'UPDATE posts SET judul=$1, isi=$2 WHERE id=$3 RETURNING *',
-      [judul, isi, id]
+    if (!judul || !isi || !category_id) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Judul, isi dan category wajib diisi'
+      });
+    }
+
+    // cek category ada
+    const categoryCheck = await pool.query(
+      'SELECT * FROM categories WHERE id=$1',
+      [category_id]
     );
 
-    res.json(result.rows[0]);
+    if (categoryCheck.rows.length === 0) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Category tidak ditemukan'
+      });
+    }
+
+    const result = await pool.query(
+      'UPDATE posts SET judul=$1, isi=$2, category_id=$3 WHERE id=$4 RETURNING *',
+      [judul.trim(), isi.trim(), category_id, id]
+    );
+
+    res.json({
+      status: 'success',
+      data: result.rows[0]
+    });
 
   } catch (err) {
     res.status(500).json({ message: err.message });
