@@ -1,26 +1,6 @@
 const pool = require('../config/db');
-const fs = require('fs');
-const path = require('path');
-
-const uploadPath = path.join(__dirname, '../public/images');
-
-/* HELPER DELETE FILE */
-const deleteUploadedFiles = async (files) => {
-  if (!files) return;
-
-  const allFiles = [
-    ...(files.gambar || []),
-    ...(files.file || [])
-  ];
-
-  for (const file of allFiles) {
-    try {
-      await fs.promises.unlink(path.join(uploadPath, file.filename));
-    } catch (err) {
-      console.error('Gagal menghapus file:', file.filename);
-    }
-  }
-};
+const sharp = require('sharp');
+const { minioClient } = require('../config/minio');
 
 /* =========================
    GET ALL POSTS
@@ -30,20 +10,17 @@ exports.getPosts = async (req, res) => {
     const result = await pool.query(`
       SELECT posts.*, categories.name AS category_name
       FROM posts
-      LEFT JOIN categories
-      ON posts.category_id = categories.id
+      LEFT JOIN categories ON posts.category_id = categories.id
       ORDER BY posts.id ASC
     `);
-
     res.json(result.rows);
-
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
 /* =========================
-   CREATE POST
+   CREATE POST (Sharp + MinIO)
 ========================= */
 exports.createPost = async (req, res) => {
   try {
@@ -51,8 +28,8 @@ exports.createPost = async (req, res) => {
     const gambar = req.files?.gambar?.[0];
     const fileUpload = req.files?.file?.[0];
 
+    // 1. Validasi Input
     const errors = [];
-
     if (!judul?.trim()) errors.push('Judul wajib diisi');
     if (!isi?.trim()) errors.push('Isi wajib diisi');
     if (!gambar) errors.push('Gambar wajib diupload');
@@ -60,52 +37,52 @@ exports.createPost = async (req, res) => {
     if (!category_id) errors.push('Category wajib dipilih');
 
     if (errors.length > 0) {
-      await deleteUploadedFiles(req.files);
-      return res.status(400).json({
-        status: 'error',
-        message: 'Validasi gagal',
-        errors
-      });
+      return res.status(400).json({ status: 'error', errors });
     }
 
-    // cek category ada
-    const categoryCheck = await pool.query(
-      'SELECT * FROM categories WHERE id=$1',
-      [category_id]
-    );
-
+    // 2. Cek apakah Kategori ada di DB
+    const categoryCheck = await pool.query('SELECT * FROM categories WHERE id=$1', [category_id]);
     if (categoryCheck.rows.length === 0) {
-      await deleteUploadedFiles(req.files);
-      return res.status(400).json({
-        status: 'error',
-        message: 'Category tidak ditemukan'
-      });
+      return res.status(400).json({ status: 'error', message: 'Category tidak ditemukan' });
     }
 
+    const bucketName = process.env.MINIO_BUCKET_NAME;
+
+    // 3. Olah Gambar dengan Sharp (Resize & Convert ke WebP)
+    const optimizedImageName = `img-${Date.now()}.webp`;
+    const optimizedImageBuffer = await sharp(gambar.buffer)
+      .resize(800)
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    // 4. Upload ke MinIO
+    // Upload Gambar Optimized
+    await minioClient.putObject(bucketName, optimizedImageName, optimizedImageBuffer, {
+      'Content-Type': 'image/webp'
+    });
+
+    // Upload File (PDF/Lainnya)
+    const fileName = `file-${Date.now()}-${fileUpload.originalname.replace(/\s/g, '_')}`;
+    await minioClient.putObject(bucketName, fileName, fileUpload.buffer, {
+      'Content-Type': fileUpload.mimetype
+    });
+
+    // 5. Simpan Data ke Database
     const result = await pool.query(
       `INSERT INTO posts (judul, isi, gambar, file, category_id)
-       VALUES ($1,$2,$3,$4,$5)
-       RETURNING *`,
-      [
-        judul.trim(),
-        isi.trim(),
-        gambar.filename,
-        fileUpload.filename,
-        category_id
-      ]
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [judul.trim(), isi.trim(), optimizedImageName, fileName, category_id]
     );
 
     res.status(201).json({
       status: 'success',
-      data: result.rows[0]
+      data: result.rows[0],
+      message: 'Post berhasil dibuat dan disimpan di MinIO'
     });
 
   } catch (err) {
-    await deleteUploadedFiles(req.files);
-    res.status(500).json({
-      status: 'error',
-      message: err.message
-    });
+    console.error('Error Create Post:', err);
+    res.status(500).json({ status: 'error', message: err.message });
   }
 };
 
@@ -118,37 +95,19 @@ exports.updatePost = async (req, res) => {
     const { judul, isi, category_id } = req.body;
 
     if (!judul?.trim() || !isi?.trim() || !category_id) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Judul, isi dan category wajib diisi'
-      });
-    }
-
-    const categoryCheck = await pool.query(
-      'SELECT * FROM categories WHERE id=$1',
-      [category_id]
-    );
-
-    if (categoryCheck.rows.length === 0) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Category tidak ditemukan'
-      });
+      return res.status(400).json({ status: 'error', message: 'Judul, isi dan category wajib diisi' });
     }
 
     const result = await pool.query(
-      `UPDATE posts
-       SET judul=$1, isi=$2, category_id=$3
-       WHERE id=$4
-       RETURNING *`,
+      `UPDATE posts SET judul=$1, isi=$2, category_id=$3 WHERE id=$4 RETURNING *`,
       [judul.trim(), isi.trim(), category_id, id]
     );
 
-    res.json({
-      status: 'success',
-      data: result.rows[0]
-    });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Post tidak ditemukan' });
+    }
 
+    res.json({ status: 'success', data: result.rows[0] });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -161,25 +120,28 @@ exports.deletePost = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const post = await pool.query(
-      'SELECT * FROM posts WHERE id=$1',
-      [id]
-    );
+    // Ambil info file untuk dihapus di MinIO juga
+    const post = await pool.query('SELECT gambar, file FROM posts WHERE id=$1', [id]);
 
     if (post.rows.length === 0) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Post tidak ditemukan'
-      });
+      return res.status(404).json({ status: 'error', message: 'Post tidak ditemukan' });
     }
 
+    const { gambar, file } = post.rows[0];
+    const bucketName = process.env.MINIO_BUCKET_NAME;
+
+    // Hapus dari Database
     await pool.query('DELETE FROM posts WHERE id=$1', [id]);
 
-    res.json({
-      status: 'success',
-      message: 'Data berhasil dihapus'
-    });
+    // Hapus dari MinIO (Opsional tapi disarankan agar storage tidak penuh)
+    try {
+      await minioClient.removeObject(bucketName, gambar);
+      await minioClient.removeObject(bucketName, file);
+    } catch (minioErr) {
+      console.error('Gagal menghapus file di MinIO:', minioErr.message);
+    }
 
+    res.json({ status: 'success', message: 'Data dan file berhasil dihapus' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

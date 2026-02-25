@@ -1,23 +1,15 @@
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const multer = require('multer'); 
 const postController = require('../controllers/postController');
 
 const router = express.Router();
-const uploadPath = path.join(__dirname, '../public/images');
 
-if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath, { recursive: true });
-}
-
-/* MULTER CONFIG */
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadPath),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + '-' + file.originalname),
-});
-
+/**
+ * MULTER CONFIG - MEMORY STORAGE
+ * Menggunakan memoryStorage agar Sharp bisa memproses buffer secara langsung
+ * tanpa membuat file sampah di folder lokal.
+ */
+const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }
