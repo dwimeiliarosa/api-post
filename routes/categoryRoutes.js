@@ -3,7 +3,7 @@ const pool = require('../config/db');
 const Joi = require('joi');
 
 const router = express.Router();
-
+const categoryController = require('../controllers/categoryController');
 /**
  * @swagger
  * tags:
@@ -11,13 +11,9 @@ const router = express.Router();
  *   description: API untuk mengelola kategori
  */
 
-const schema = Joi.object({
-  name: Joi.string().min(3).max(100).required()
-});
-
 /**
  * @swagger
- * /api/categories:
+ * /categories:
  *   get:
  *     summary: Ambil semua kategori
  *     tags: [Categories]
@@ -25,20 +21,11 @@ const schema = Joi.object({
  *       200:
  *         description: Berhasil mengambil data
  */
-router.get('/categories', async (req, res) => {
-  try {
-    const result = await pool.query(
-      'SELECT * FROM categories ORDER BY id ASC'
-    );
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+router.get('/categories', categoryController.getCategories);
 
 /**
  * @swagger
- * /api/categories:
+ * /categories:
  *   post:
  *     summary: Tambah kategori baru
  *     tags: [Categories]
@@ -59,48 +46,11 @@ router.get('/categories', async (req, res) => {
  *       400:
  *         description: Validasi gagal
  */
-router.post('/categories', async (req, res) => {
-  try {
-    const { error } = schema.validate(req.body);
-    if (error) {
-      return res.status(400).json({
-        status: 'error',
-        message: error.details[0].message
-      });
-    }
-
-    const { name } = req.body;
-
-    const existing = await pool.query(
-      'SELECT * FROM categories WHERE name=$1',
-      [name]
-    );
-
-    if (existing.rows.length > 0) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Category sudah ada'
-      });
-    }
-
-    const result = await pool.query(
-      'INSERT INTO categories (name) VALUES ($1) RETURNING *',
-      [name]
-    );
-
-    res.status(201).json({
-      status: 'success',
-      data: result.rows[0]
-    });
-
-  } catch (err) {
-    res.status(500).json({ status: 'error', message: err.message });
-  }
-});
+router.post('/categories', categoryController.createCategory);
 
 /**
  * @swagger
- * /api/categories/{id}:
+ * /categories/{id}:
  *   put:
  *     summary: Update kategori
  *     tags: [Categories]
@@ -116,40 +66,11 @@ router.post('/categories', async (req, res) => {
  *       404:
  *         description: Category tidak ditemukan
  */
-router.put('/categories/:id', async (req, res) => {
-  try {
-    const { error } = schema.validate(req.body);
-    if (error) {
-      return res.status(400).json({ message: error.details[0].message });
-    }
-
-    const { id } = req.params;
-    const { name } = req.body;
-
-    const check = await pool.query(
-      'SELECT * FROM categories WHERE id=$1',
-      [id]
-    );
-
-    if (check.rows.length === 0) {
-      return res.status(404).json({ message: 'Category tidak ditemukan' });
-    }
-
-    const result = await pool.query(
-      'UPDATE categories SET name=$1 WHERE id=$2 RETURNING *',
-      [name, id]
-    );
-
-    res.json(result.rows[0]);
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+router.put('/categories/:id', categoryController.updateCategory);
 
 /**
  * @swagger
- * /api/categories/{id}:
+ * /categories/{id}:
  *   delete:
  *     summary: Hapus kategori
  *     tags: [Categories]
@@ -165,29 +86,6 @@ router.put('/categories/:id', async (req, res) => {
  *       404:
  *         description: Category tidak ditemukan
  */
-router.delete('/categories/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const check = await pool.query(
-      'SELECT * FROM categories WHERE id=$1',
-      [id]
-    );
-
-    if (check.rows.length === 0) {
-      return res.status(404).json({ message: 'Category tidak ditemukan' });
-    }
-
-    await pool.query(
-      'DELETE FROM categories WHERE id=$1',
-      [id]
-    );
-
-    res.json({ message: 'Category berhasil dihapus' });
-
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+router.delete('/categories/:id', categoryController.deleteCategory);
 
 module.exports = router;
