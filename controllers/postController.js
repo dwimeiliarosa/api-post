@@ -2,6 +2,12 @@ const pool = require('../config/db');
 const sharp = require('sharp');
 const { minioClient } = require('../config/minio');
 
+const getPublicUrl = (fileName) => {
+  const baseDomain = process.env.MINIO_PUBLIC_URL; // Pastikan ini ada di file .env
+  const bucket = process.env.MINIO_BUCKET_NAME;
+  
+  return `${baseDomain}/${bucket}/${fileName}`;
+};
 /* =========================
    GET ALL POSTS
 ========================= */
@@ -13,7 +19,15 @@ exports.getPosts = async (req, res) => {
       LEFT JOIN categories ON posts.category_id = categories.id
       ORDER BY posts.id ASC
     `);
-    res.json(result.rows);
+
+    // Mapping hasil query untuk mengubah nama file jadi URL
+    const formattedData = result.rows.map(post => ({
+      ...post,
+      gambar: post.gambar ? getPublicUrl(post.gambar) : null,
+      file: post.file ? getPublicUrl(post.file) : null
+    }));
+
+    res.json(formattedData);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -74,11 +88,18 @@ exports.createPost = async (req, res) => {
       [judul.trim(), isi.trim(), optimizedImageName, fileName, category_id]
     );
 
+    const postData = result.rows[0];
+    const formattedData = {
+    ...postData,
+    gambar: postData.gambar ? getPublicUrl(postData.gambar) : null,
+    file: postData.file ? getPublicUrl(postData.file) : null
+};
+
     res.status(201).json({
-      status: 'success',
-      data: result.rows[0],
-      message: 'Post berhasil dibuat dan disimpan di MinIO'
-    });
+    status: 'success',
+    data: formattedData,
+    message: 'Post berhasil dibuat dan disimpan di MinIO'
+});
 
   } catch (err) {
     console.error('Error Create Post:', err);
@@ -107,12 +128,21 @@ exports.updatePost = async (req, res) => {
       return res.status(404).json({ status: 'error', message: 'Post tidak ditemukan' });
     }
 
-    res.json({ status: 'success', data: result.rows[0] });
-  } catch (err) {
+    const postData = result.rows[0];
+    const formattedData = {
+      ...postData,
+      gambar: postData.gambar ? getPublicUrl(postData.gambar) : null,
+      file: postData.file ? getPublicUrl(postData.file) : null
+    };
+
+    res.json({ 
+      status: 'success', 
+      data: formattedData 
+    });
+  } catch (err) { 
     res.status(500).json({ message: err.message });
   }
 };
-
 /* =========================
    DELETE POST
 ========================= */
