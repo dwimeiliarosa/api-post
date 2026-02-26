@@ -1,55 +1,36 @@
 # API Post & Authentication System (Projek PKL)
 
-Sistem API backend berbasis Node.js dan Express yang menyediakan fitur manajemen postingan (CRUD) dan sistem autentikasi pengguna menggunakan JWT (JSON Web Token) serta hashing password dengan Argon2.
+Sistem API backend berbasis Node.js dan Express yang menyediakan fitur manajemen postingan (CRUD) dan sistem autentikasi pengguna. Proyek ini telah mengimplementasikan optimasi gambar dan sistem penyimpanan objek (Object Storage).
+
+## 🛠️ Teknologi yang Digunakan
+
+Proyek ini dibangun menggunakan ekosistem JavaScript modern:
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: PostgreSQL
+- **Object Storage**: MinIO (S3 Compatible)
+- **Image Processing**: Sharp (Resize & WebP conversion)
+- **Authentication**: JWT (JSON Web Token)
+- **Security**: Argon2 (Password Hashing)
+- **Documentation**: Swagger UI
 
 ## 🚀 Fitur Utama
 - **Autentikasi**: Login, Refresh Token, dan Proteksi Profile.
 - **CRUD Posts**: Pengelolaan data postingan (Judul, Isi, Gambar, File).
-- **File Upload**: Mendukung upload gambar dan dokumen melalui Multer.
-- **Dokumentasi API**: Terintegrasi dengan Swagger UI untuk pengujian endpoint secara interaktif.
-- **Keamanan**: Implementasi Middleware JWT dan Hashing Argon2.
+- **Optimasi Gambar**: Otomatis mengubah ukuran dan format gambar ke WebP menggunakan Sharp.
+- **Object Storage**: File tidak disimpan di server lokal, melainkan di MinIO dengan akses Public Read-only.
+- **Dokumentasi API**: Pengujian endpoint secara interaktif melalui Swagger.
 
 ## 📁 Struktur Folder
-Proyek ini menggunakan pola arsitektur **MVC (Model-View-Controller)** agar kode lebih terorganisir:
-
-* **`config/`**: Konfigurasi koneksi database PostgreSQL.
-* **`controllers/`**: Logika bisnis utama untuk setiap endpoint.
-* **`middlewares/`**: Berisi fungsi penengah seperti autentikasi JWT dan konfigurasi upload.
-* **`models/`**: Berisi query database (PostgreSQL).
+* **`config/`**: Konfigurasi koneksi database PostgreSQL dan inisialisasi MinIO Bucket.
+* **`controllers/`**: Logika bisnis utama (Auth, Posts, Category).
+* **`middlewares/`**: Proteksi JWT dan konfigurasi upload Multer.
 * **`routes/`**: Definisi jalur API (Endpoints).
-* **`utils/`**: Helper atau utilitas tambahan seperti konfigurasi Swagger.
-* **`uploads/`**: Folder penyimpanan file fisik yang diunggah.
+* **`utils/`**: Helper untuk Swagger UI.
 
-## 🛠️ Persiapan Lingkungan (Setup)
+## ⚙️ Persiapan Lingkungan (Setup)
 
-1.  **Instalasi Dependensi**:
-    ```bash
-    npm install
-    ```
-
-2.  **Konfigurasi Database**:
-    Pastikan PostgreSQL sudah berjalan dan sesuaikan konfigurasi pada file `.env`.
-
-3.  **Environment Variables (`.env`)**:
-    Buat file `.env` dan isi dengan detail berikut:
-    ```env
-    DB_USER=postgres
-    DB_PASSWORD=your_password
-    DB_NAME=database_post
-    DB_HOST=localhost
-    DB_PORT=5432
-    ACCESS_TOKEN_SECRET=your_secret_key
-    REFRESH_TOKEN_SECRET=your_refresh_key
-    ```
-
-4.  **Menjalankan Server**:
-    ```bash
-    node index.js
-    ```
-
-## 📖 Dokumentasi API
-Setelah server berjalan, Anda dapat mengakses dokumentasi API interaktif melalui:
-`http://localhost:3000/api-docs`
-
-## 🛡️ Keamanan
-Project ini menggunakan **Argon2** untuk hashing password yang aman dan **JWT** untuk menjaga sesi pengguna tetap terproteksi.
+### 1. Clone Repositori
+```bash
+git clone [https://github.com/USERNAME_KAMU/NAMA_REPO.git](https://github.com/USERNAME_KAMU/NAMA_REPO.git)
+cd api-post
