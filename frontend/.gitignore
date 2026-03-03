@@ -1,9 +1,3 @@
-# --- BACKEND SPECIFIC ---
-minio.exe
-public/images/
-# Jika kamu menyimpan upload-an di folder tertentu di backend:
-uploads/
-
 # --- LOGS & DEBUG ---
 logs
 *.log
@@ -13,19 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# --- DEPENDENCIES (Akan mengabaikan node_modules di root & folder frontend) ---
+# --- DEPENDENCIES (Folder Berat) ---
 node_modules/
-**/node_modules/
 .pnp
 .pnp.js
 
-# --- PRODUCTION / BUILD (Frontend & Backend) ---
+# --- PRODUCTION / BUILD ---
 dist/
 dist-ssr/
 build/
 out/
 
-# --- ENVIRONMENT VARIABLES (Sangat Penting!) ---
+# --- ENVIRONMENT VARIABLES (Sangat Penting: Jaga Keamanan API!) ---
 .env
 .env.local
 .env.development.local
@@ -50,4 +43,5 @@ coverage/
 __pycache__/
 
 # --- TEMPORARY / CONFLICT FILES ---
+
 *-DESKTOP-*
