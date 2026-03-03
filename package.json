@@ -12,6 +12,7 @@
   "description": "Sistem API backend berbasis Node.js dan Express yang menyediakan fitur manajemen postingan (CRUD) dan sistem autentikasi pengguna menggunakan JWT (JSON Web Token) serta hashing password dengan Argon2.",
   "dependencies": {
     "argon2": "^0.44.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^4.22.1",
     "joi": "^18.0.2",
