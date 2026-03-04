@@ -6,6 +6,7 @@ import CategoryPage from "./pages/CategoryPage";
 import DetailPage from "./pages/DetailPage";
 import CreatePost from "./pages/CreatePost";
 import EditPost from "./pages/EditPost";
+import FavoritesPage from "./pages/FavoritesPage";
 
 // Import Profile (Pastikan penamaan berbeda agar tidak bentrok)
 import ProfilePage from "./pages/user/ProfilePage";
@@ -24,6 +25,8 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/category/:id" element={<CategoryPage />} />
         <Route path="/detail/:id" element={<DetailPage />} />
+
+        <Route path="/favorites" element={<FavoritesPage />} />
 
         {/* Admin/Post Management Routes */}
         <Route path="/create-post" element={<CreatePost />} />

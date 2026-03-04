@@ -31,31 +31,7 @@ const upload = multer({
  *       500:
  *         description: Kesalahan server
  */
-router.get('/posts', authenticateToken, postController.getPosts);
-
-/**
- * @swagger
- * /posts/{id}:
- *   get:
- *     summary: Ambil satu postingan berdasarkan ID
- *     tags:
- *       - Posts
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID postingan
- *     responses:
- *       200:
- *         description: Berhasil mengambil data
- *       404:
- *         description: Post tidak ditemukan
- *       500:
- *         description: Kesalahan server
- */
-router.get('/posts/:id', postController.getPostById);
+router.get('/posts', postController.getPosts);
 
 /**
  * @swagger
@@ -95,10 +71,34 @@ router.get('/posts/:id', postController.getPostById);
 router.post(
   '/posts', 
   authenticateToken, 
-  isAdmin, // <-- TAMBAHKAN INI: Proteksi Admin
-  upload.fields([{ name: 'gambar', maxCount: 1 }]), 
+  isAdmin, 
+  upload.single('gambar'), // Sesuai permintaanmu: kembali ke single
   postController.createPost
 );
+
+/**
+ * @swagger
+ * /posts/{id}:
+ *   get:
+ *     summary: Ambil satu postingan berdasarkan ID
+ *     tags:
+ *       - Posts
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID postingan
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil data
+ *       404:
+ *         description: Post tidak ditemukan
+ *       500:
+ *         description: Kesalahan server
+ */
+router.get('/posts/:id', postController.getPostById);
 
 /**
  * @swagger
@@ -147,8 +147,8 @@ router.post(
 router.put(
   '/posts/:id',
   authenticateToken,
-  isAdmin, // <-- TAMBAHKAN INI: Proteksi Admin
-  upload.fields([{ name: 'gambar', maxCount: 1 }]),
+  isAdmin,
+  upload.single('gambar'), // Samakan menjadi single agar konsisten
   postController.updatePost
 );
 
@@ -181,51 +181,9 @@ router.put(
 router.delete(
   '/posts/:id', 
   authenticateToken, 
-  isAdmin, // <-- TAMBAHKAN INI: Proteksi Admin
+  isAdmin, 
   postController.deletePost
 );
-
-/**
- * @swagger
- * /favorites/{id}:
- *   post:
- *     summary: Toggle Favorite (Like/Unlike) sebuah post
- *     tags:
- *       - Favorites
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID dari post yang ingin difavoritkan
- *     responses:
- *       200:
- *         description: Berhasil menambah atau menghapus favorit
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 message:
- *                   type: string
- *                   example: Ditambahkan ke favorit
- *                 isFavorited:
- *                   type: boolean
- *                   example: true
- *       401:
- *         description: Unauthorized (Token tidak valid atau tidak ada)
- *       404:
- *         description: Post tidak ditemukan
- *       500:
- *         description: Kesalahan server
- */
-router.post('/favorites/:id', authenticateToken, postController.toggleFavorite);
 
 /* HANDLE MULTER ERROR */
 router.use((err, req, res, next) => {

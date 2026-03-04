@@ -25,30 +25,34 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Jika error 403 (Forbidden) dan belum pernah dicoba refresh
-    if (error.response?.status === 403 && !originalRequest._retry) {
+    // 1. Tangani Token Expired (401)
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
       try {
         const refreshToken = localStorage.getItem('refreshToken');
-        // Panggil endpoint refresh-token milikmu
-        const res = await axios.post('http://localhost:3000/api/refresh-token', {
-          refreshToken,
-        });
+        const res = await axios.post('http://localhost:3000/api/refresh-token', { refreshToken });
 
         if (res.status === 200) {
           localStorage.setItem('accessToken', res.data.accessToken);
-          // Ulangi request yang gagal tadi dengan token baru
           originalRequest.headers.Authorization = `Bearer ${res.data.accessToken}`;
           return api(originalRequest);
         }
       } catch (refreshError) {
-        // Jika refresh token juga gagal/expired, paksa login ulang
         localStorage.clear();
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }
     }
+
+    // 2. Tangani Akses Ditolak (403) - Perhatikan pembungkus IF status 403
+    if (error.response?.status === 403) {
+      // Hanya munculkan alert jika user mencoba POST/PUT/DELETE (aksi Admin)
+      if (originalRequest.method !== 'get') {
+        console.error("Akses ditolak: Anda bukan admin");
+        alert("Maaf, hanya Admin yang bisa melakukan aksi ini! ⛔");
+      }
+    }
+
     return Promise.reject(error);
   }
 );
