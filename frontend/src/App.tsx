@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "sonner"; // 1. Import Toaster
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -8,35 +9,50 @@ import CreatePost from "./pages/CreatePost";
 import EditPost from "./pages/EditPost";
 import FavoritesPage from "./pages/FavoritesPage";
 
-// Import Profile (Pastikan penamaan berbeda agar tidak bentrok)
+// Import Profile
 import ProfilePage from "./pages/user/ProfilePage";
 import ProfileEditPage from "./pages/user/ProfileEditPage"; 
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Auth Routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/" element={<Navigate to="/login" />} />
+    <>
+      {/* 2. Tambahkan Toaster di sini */}
+      <Toaster 
+  position="top-center" 
+  richColors 
+  expand={false}
+  closeButton
 
-        {/* Main Content Routes */}
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/category/:id" element={<CategoryPage />} />
-        <Route path="/detail/:id" element={<DetailPage />} />
+  toastOptions={{
+    className: 'font-sans',
+    style: { borderRadius: '1.2rem' } 
+  }}
+/>
+      
+      <BrowserRouter>
+        <Routes>
+          {/* Auth Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/" element={<Navigate to="/login" />} />
 
-        <Route path="/favorites" element={<FavoritesPage />} />
+          {/* Main Content Routes */}
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/category/:id" element={<CategoryPage />} />
+          <Route path="/detail/:id" element={<DetailPage />} />
 
-        {/* Admin/Post Management Routes */}
-        <Route path="/create-post" element={<CreatePost />} />
-        <Route path="/edit-post/:id" element={<EditPost />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
 
-        {/* User Profile Routes */}
-        <Route path="/user/profile" element={<ProfilePage />} />
-        <Route path="/user/profile/edit" element={<ProfileEditPage />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Admin/Post Management Routes */}
+          <Route path="/create-post" element={<CreatePost />} />
+          <Route path="/edit-post/:id" element={<EditPost />} />
+
+          {/* User Profile Routes */}
+          <Route path="/user/profile" element={<ProfilePage />} />
+          <Route path="/user/profile/edit" element={<ProfileEditPage />} />
+        </Routes>
+      </BrowserRouter>
+    </>
   );
 }
 

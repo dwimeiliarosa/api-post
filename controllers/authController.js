@@ -1,6 +1,8 @@
 const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
+const { minioClient } = require('../config/minio');
+const sharp = require('sharp');
 const {
   generateAccessToken,
   generateRefreshToken,
@@ -80,13 +82,14 @@ exports.login = async (req, res) => {
       [refreshToken, user.id]
     );
 
-    res.json({
-      status: 'success',
-      message: 'Login Berhasil',
-      accessToken,
-      refreshToken,
-      role: user.role
-    });
+res.json({
+  status: 'success',
+  message: 'Login Berhasil',
+  accessToken,
+  refreshToken,
+  role: user.role,
+  username: user.username // <-- TAMBAHKAN BARIS INI
+});
 
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -132,33 +135,38 @@ exports.refreshToken = async (req, res) => {
 exports.profile = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, email, role FROM users WHERE id = $1',
+      'SELECT id, username, email, role, avatar FROM users WHERE id = $1',
       [req.user.id]
     );
 
     res.json({
       status: 'success',
-      user: result.rows[0]
+      user: {
+        id: result.rows[0].id,
+        username: result.rows[0].username,
+        email: result.rows[0].email,
+        role: result.rows[0].role,
+        avatar: result.rows[0].avatar || null 
+      }
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error di Profile:", error.message);
+    res.status(500).json({ message: "Gagal ambil data profil" });
   }
 };
 
-// ================= UPDATE PROFILE (NEW) =================
+// ================= UPDATE PROFILE (TEXT ONLY) =================
 exports.updateProfile = async (req, res) => {
-  console.log("KIRIMAN DATA DARI FRONTEND SAMPAI KE SINI!");
   try {
-    const userId = req.user.id; // Diambil dari middleware authenticateToken
+    const userId = req.user.id;
     const { username, email } = req.body;
 
     if (!username?.trim() || !email?.trim()) {
       return res.status(400).json({ message: 'Username dan Email tidak boleh kosong' });
     }
 
-    // Query UPDATE untuk PostgreSQL
     const result = await pool.query(
-      'UPDATE users SET username = $1, email = $2 WHERE id = $3 RETURNING id, username, email, role',
+      'UPDATE users SET username = $1, email = $2 WHERE id = $3 RETURNING id, username, email, role, avatar',
       [username.trim(), email.trim(), userId]
     );
 
@@ -172,10 +180,88 @@ exports.updateProfile = async (req, res) => {
       user: result.rows[0]
     });
   } catch (error) {
-    // Menangani error jika email baru ternyata sudah dipakai orang lain (Unique Constraint)
     if (error.code === '23505') {
       return res.status(400).json({ message: 'Email sudah digunakan oleh user lain' });
     }
     res.status(500).json({ message: error.message });
+  }
+};
+
+// ================= UPDATE AVATAR (MINIO + SHARP) =================
+exports.updateAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Pilih foto dulu ya!' });
+    }
+
+    const userId = req.user.id;
+    const bucketName = process.env.MINIO_BUCKET_NAME;
+    const fileName = `avatars/${userId}-${Date.now()}.webp`;
+
+    const optimizedBuffer = await sharp(req.file.buffer)
+      .resize(300, 300, { fit: 'cover' })
+      .webp({ quality: 80 })
+      .toBuffer();
+
+    await minioClient.putObject(
+      bucketName,
+      fileName,
+      optimizedBuffer,
+      optimizedBuffer.length,
+      { 'Content-Type': 'image/webp' }
+    );
+
+    const avatarUrl = `http://localhost:3000/api/view-image/${fileName.replace('avatars/', 'avatars%2F')}`;
+
+    const query = 'UPDATE users SET avatar = $1 WHERE id = $2 RETURNING id, username, email, avatar';
+    const values = [avatarUrl, userId];
+    
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'User tidak ditemukan' });
+    }
+
+    res.status(200).json({
+      message: 'Foto profil berhasil diupdate! ✨',
+      user: result.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Error Update Avatar:', error);
+    res.status(500).json({ message: 'Gagal update foto', error: error.message });
+  }
+};
+
+// ================= DELETE AVATAR (NEW) =================
+exports.deleteAvatar = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 1. Cari data user dulu buat dapet nama filenya
+    const userResult = await pool.query('SELECT avatar FROM users WHERE id = $1', [userId]);
+    const avatarUrl = userResult.rows[0]?.avatar;
+
+    if (!avatarUrl) {
+      return res.status(400).json({ message: "Kamu belum pasang foto profil, Kak!" });
+    }
+
+    // 2. Ambil nama file dari URL
+    const fileName = decodeURIComponent(avatarUrl.split('view-image/')[1]);
+
+    // 3. Hapus file di MinIO
+    const bucketName = process.env.MINIO_BUCKET_NAME;
+    await minioClient.removeObject(bucketName, fileName);
+
+    // 4. Update database set avatar jadi NULL
+    await pool.query('UPDATE users SET avatar = NULL WHERE id = $1', [userId]);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Foto profil berhasil dihapus! ✨'
+    });
+  } catch (error) {
+    console.error("Error Delete Avatar:", error);
+    res.status(500).json({ message: "Gagal menghapus foto profil", error: error.message });
   }
 };

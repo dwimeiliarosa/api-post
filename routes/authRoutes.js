@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
+const upload = require('../middleware/uploadMiddleware');
 
 // Gunakan destructuring karena middleware mengekspor object
 const { authenticateToken } = require('../middleware/authMiddleware');
@@ -17,8 +18,7 @@ const { authenticateToken } = require('../middleware/authMiddleware');
  * /register:
  *   post:
  *     summary: Registrasi user baru
- *     tags:
- *       - Authentication
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -44,8 +44,6 @@ const { authenticateToken } = require('../middleware/authMiddleware');
  *         description: Registrasi berhasil
  *       400:
  *         description: Data tidak valid
- *       500:
- *         description: Kesalahan server
  */
 router.post('/register', authController.register);
 
@@ -54,8 +52,7 @@ router.post('/register', authController.register);
  * /login:
  *   post:
  *     summary: Login user
- *     tags:
- *       - Authentication
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -71,14 +68,7 @@ router.post('/register', authController.register);
  *                 example: AdminDwi@email.com
  *               password:
  *                 type: string
- *                 example: 123456
- *     responses:
- *       200:
- *         description: Login berhasil
- *       400:
- *         description: Email atau password salah
- *       500:
- *         description: Kesalahan server
+ *                 example: "123456"
  */
 router.post('/login', authController.login);
 
@@ -87,27 +77,7 @@ router.post('/login', authController.login);
  * /refresh-token:
  *   post:
  *     summary: Refresh access token
- *     tags:
- *       - Authentication
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - refreshToken
- *             properties:
- *               refreshToken:
- *                 type: string
- *                 example: your_refresh_token_here
- *     responses:
- *       200:
- *         description: Access token baru berhasil dibuat
- *       400:
- *         description: Refresh token tidak valid
- *       500:
- *         description: Kesalahan server
+ *     tags: [Authentication]
  */
 router.post('/refresh-token', authController.refreshToken);
 
@@ -116,31 +86,34 @@ router.post('/refresh-token', authController.refreshToken);
  * /profile:
  *   get:
  *     summary: Get profile (Protected)
- *     tags:
- *       - Authentication
+ *     tags: [Authentication]
  *     security:
  *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Profile berhasil diakses
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Kesalahan server
  */
 router.get('/profile', authenticateToken, authController.profile);
 
 /**
- * Endpoint tambahan /auth/me (opsional, untuk sinkronisasi dengan frontend)
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Ambil data user yang sedang login (Sync Frontend)
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Data user berhasil diambil
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/auth/me', authenticateToken, authController.profile);
+
 /**
  * @swagger
- * /auth/update-profile:
+ * /update-profile:
  *   put:
- *     summary: Update profile user (Protected)
- *     tags:
- *       - Authentication
+ *     summary: Update profile user (Text Only)
+ *     tags: [Authentication]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -152,20 +125,55 @@ router.get('/auth/me', authenticateToken, authController.profile);
  *             properties:
  *               username:
  *                 type: string
- *                 example: Eka Kurnia New
+ *                 example: Dwi New
  *               email:
  *                 type: string
- *                 example: eka_new@email.com
- *     responses:
- *       200:
- *         description: Profil berhasil diperbarui
- *       401:
- *         description: Unauthorized (Token tidak valid)
- *       404:
- *         description: User tidak ditemukan
- *       500:
- *         description: Kesalahan server
+ *                 example: dwi_new@email.com
  */
 router.put('/update-profile', authenticateToken, authController.updateProfile);
+
+/**
+ * @swagger
+ * /update-avatar:
+ *   patch:
+ *     summary: Update foto profil (Upload Image to MinIO)
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               avatar:
+ *                 type: string
+ *                 format: binary
+ */
+router.patch(
+  '/update-avatar',
+  authenticateToken,
+  upload.single('avatar'),
+  authController.updateAvatar
+);
+
+/**
+ * @swagger
+ * /delete-avatar:
+ *   delete:
+ *     summary: Hapus foto profil (Back to default)
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Foto profil berhasil dihapus
+ *       400:
+ *         description: User belum memiliki foto profil
+ *       401:
+ *         description: Unauthorized
+ */
+// Di authRoutes.js, pastikan baris ini ada:
+router.delete('/delete-avatar', authenticateToken, authController.deleteAvatar);
 
 module.exports = router;

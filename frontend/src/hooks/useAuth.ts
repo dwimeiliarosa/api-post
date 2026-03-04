@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/axiosInstance";
 import { LoginFormValues } from "@/schemas/auth";
 
-
 /**
  * HOOK: LOGIN
  * Menangani proses autentikasi dan penyimpanan token
@@ -22,6 +21,7 @@ export const useLogin = () => {
       }
     },
     onError: (error: any) => {
+      // Alert login tetap dibiarkan jika kamu belum memasang toast di halaman login
       alert(error.response?.data?.message || "Login gagal, silakan cek kembali email/password anda.");
     }
   });
@@ -30,25 +30,21 @@ export const useLogin = () => {
 /**
  * HOOK: GET PROFILE (useMe / useProfile)
  * Mengambil data user yang sedang login. 
- * Kita gunakan queryKey ["auth-me"] agar konsisten di seluruh aplikasi.
  */
 export const useMe = () => {
   return useQuery({
     queryKey: ["auth-me"],
     queryFn: async () => {
       const res = await api.get("/auth/me");
-      // Sesuai log console kamu: data berada di res.data.user
       console.log("Data User yang Dikirim ke Komponen:", res.data.user);
       return res.data.user;
     },
-    // Hanya fetch jika token ada di localStorage
     enabled: !!localStorage.getItem("accessToken"),
-    // Menghindari fetch berulang jika data belum dianggap 'basi' (stale)
     staleTime: 1000 * 60 * 5, 
   });
 };
 
-// Alias untuk useMe jika kamu lebih suka menyebutnya useProfile
+// Alias untuk useMe
 export const useProfile = useMe;
 
 /**
@@ -60,16 +56,17 @@ export const useUpdateProfile = () => {
 
   return useMutation({
     mutationFn: async (updatedData: any) => {
-      // HAPUS '/auth' agar sesuai dengan app.use('/api', authRoutes) di index.js
       const res = await api.put("/update-profile", updatedData);
       return res.data;
     },
     onSuccess: () => {
+      // Refresh data user agar konsisten di seluruh aplikasi
       queryClient.invalidateQueries({ queryKey: ["auth-me"] });
-      alert("Profile updated successfully! ✨");
+      
+      // ALERT DIHAPUS agar tidak double dengan Sonner di ProfileEditPage.tsx
     },
-    onError: (error: any) => {
-       alert(error.response?.data?.message || "Gagal update profile");
+   onError: () => {
+      // ALERT DIHAPUS agar pesan error ditangani oleh Sonner di komponen
     }
   });
 };
