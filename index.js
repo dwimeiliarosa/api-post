@@ -10,6 +10,7 @@ const authRoutes = require('./routes/authRoutes');
 const postRoutes = require('./routes/postRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 
 const app = express();
 
@@ -25,13 +26,20 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Proxy Image MinIO
+// Proxy Image MinIO - Update dengan Decode URI
+// Proxy Image MinIO - Versi Perbaikan
 app.get('/api/view-image/:filename', async (req, res) => {
   try {
+    // 1. Decode nama file (mengubah %20 kembali menjadi spasi)
+    const filename = decodeURIComponent(req.params.filename); 
+    
     const stream = await minioClient.getObject(
       process.env.MINIO_BUCKET_NAME,
-      req.params.filename
+      filename
     );
+
+    // 2. Beri tahu browser bahwa ini adalah gambar agar tidak didownload otomatis
+    res.setHeader('Content-Type', 'image/jpeg'); 
     stream.pipe(res);
   } catch (err) {
     console.error('MinIO Get Error:', err);
@@ -49,6 +57,8 @@ app.use('/api', categoryRoutes);
 app.use('/api/favorites', favoriteRoutes); // Favorit dipisah agar modular
 
 app.use('/api', postRoutes);     // PostRoutes sekarang bersih dari log internal
+
+app.use('/api/reviews', reviewRoutes);
 
 // Debug: Cek Rute Aktif
 app._router.stack.forEach(function(r) {

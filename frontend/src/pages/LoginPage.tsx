@@ -75,8 +75,8 @@ const onSubmit = async (data: LoginFormValues) => {
     localStorage.setItem("accessToken", response.data.accessToken);
     localStorage.setItem("refreshToken", response.data.refreshToken);
 
-    const loginName = response.data.username || "Aji"; 
-    showToast(`Login berhasil! ✨ Halo, ${loginName}`, "success");
+    const loginName = response.data.username || "Glowvers"; 
+    showToast(`Login berhasil! Halo, ${loginName}`, "success");
     
     // Biarkan loading sampai pindah halaman
     setTimeout(() => {

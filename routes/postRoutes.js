@@ -22,16 +22,24 @@ const upload = multer({
  * @swagger
  * /posts:
  *   get:
- *     summary: Ambil semua postingan
- *     tags:
- *       - Posts
+ *     summary: Ambil semua postingan (Pagination & Limit)
+ *     tags: [Posts]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Halaman ke berapa
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Jumlah data per slide (default 8)
  *     responses:
  *       200:
  *         description: Berhasil mengambil data
- *       500:
- *         description: Kesalahan server
  */
-router.get('/posts', postController.getPosts);
+router.get('/posts', postController.getAllPosts);
 
 /**
  * @swagger

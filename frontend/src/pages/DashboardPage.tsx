@@ -18,8 +18,9 @@ import {
   Search, 
   X,
   Heart,
-  ChevronLeft, // Icon baru untuk pagination
-  ChevronRight // Icon baru untuk pagination
+  ChevronLeft,
+  ChevronRight,
+  Layers // Icon tambahan untuk limit
 } from "lucide-react";
 import api from "@/api/axiosInstance";
 
@@ -34,45 +35,41 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Data Fetching
+  // --- STATE PAGINATION, LIMIT & SEARCH ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit, setLimit] = useState(8); // Default 8 item per halaman
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // --- DATA FETCHING ---
   const { data: userData, isLoading: isUserLoading } = useMe();
   const { data: categories } = useCategories();
-  const { data: posts, isLoading: isPostsLoading } = usePosts();
+  
+  // Sekarang mengirim currentPage dan limit ke hook
+  const { data: postResponse, isLoading: isPostsLoading } = usePosts(currentPage, limit);
+  
   const { data: favs } = useMyFavorites();
   const toggleFavorite = useToggleFavorite();
 
   const user = userData?.data || userData;
 
-  const [searchTerm, setSearchTerm] = useState("");
-  
-  // --- STATE PAGINATION ---
-  const [currentPage, setCurrentPage] = useState(1);
-  const postsPerPage = 8; // Tampilkan 8 item per halaman
+  // --- PAGINATION METADATA DARI BACKEND ---
+  const posts = postResponse?.data || [];
+  const meta = postResponse?.meta;
+  const totalPages = meta?.totalPages || 1;
+  const totalData = meta?.totalData || 0;
 
-  const MINIO_ENDPOINT = "http://localhost:9000"; 
-  const BUCKET_NAME = "post-bucket";
-
-  // LOGIKA FILTER & SEARCH
+  // LOGIKA FILTER SEARCH
   const filteredPosts = useMemo(() => {
-    const allPosts = Array.isArray(posts) ? posts : (posts as any)?.data || [];
-    if (!searchTerm) return allPosts;
-
-    return allPosts.filter((post: any) =>
+    if (!searchTerm) return posts;
+    return posts.filter((post: any) =>
       post.judul.toLowerCase().includes(searchTerm.toLowerCase()) ||
       post.isi.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [posts, searchTerm]);
 
-  // --- LOGIKA SLICE DATA UNTUK PAGINATION ---
-  const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
-  const indexOfLastPost = currentPage * postsPerPage;
-  const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const displayedPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
-
-  // Reset ke halaman 1 jika user melakukan pencarian
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1);
+    setCurrentPage(1); // Reset ke hal 1 saat mengetik
   };
 
   const getCategoryImage = (name: string) => {
@@ -226,12 +223,31 @@ export default function DashboardPage() {
 
         {/* PRODUCTS SECTION */}
         <section className="bg-white/70 backdrop-blur-xl rounded-[3rem] p-8 shadow-2xl border border-white/40">
-          <div className="flex justify-between items-center mb-10 px-2">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 px-2 gap-4">
             <div>
               <h2 className="text-3xl font-black text-zinc-800 uppercase italic tracking-tighter">
                 {searchTerm ? `Results for "${searchTerm}"` : <>New <span style={{ color: "#967EFA" }}>Arrivals</span></>}
               </h2>
               <div className="h-1.5 w-12 mt-2 rounded-full" style={{ background: "linear-gradient(to right, #ff99d8, #967EFA)" }}></div>
+            </div>
+
+            {/* LIMIT SELECTOR */}
+            <div className="flex items-center gap-2 bg-white/50 p-1.5 rounded-2xl border border-purple-50 shadow-sm">
+              <Layers size={14} className="ml-2 text-zinc-400" />
+              <span className="text-[10px] font-black text-zinc-400 uppercase mr-1">Show:</span>
+              {[4, 8, 12].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => { setLimit(num); setCurrentPage(1); }}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                    limit === num 
+                    ? "bg-[#967EFA] text-white shadow-md" 
+                    : "text-zinc-500 hover:bg-purple-50"
+                  }`}
+                >
+                  {num}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -248,7 +264,7 @@ export default function DashboardPage() {
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                {displayedPosts.map((post: any) => {
+                {filteredPosts.map((post: any) => {
                   const isFavorited = favs?.some((f: any) => f.id === post.id);
                   return (
                     <Card 
@@ -258,7 +274,7 @@ export default function DashboardPage() {
                     >
                       <div className="aspect-[4/5] overflow-hidden relative">
                         <img
-                          src={post.gambar?.startsWith("http") ? post.gambar : `${MINIO_ENDPOINT}/${BUCKET_NAME}/${post.gambar}`}
+                          src={post.gambar} // SINKRONISASI GAMBAR: Langsung pakai URL lengkap dari backend
                           alt={post.judul}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
@@ -299,7 +315,7 @@ export default function DashboardPage() {
                 })}
               </div>
 
-              {/* --- BAGIAN PAGINATION CONTROLS --- */}
+              {/* PAGINATION CONTROLS */}
               {totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-16 pb-4">
                   <div className="flex items-center gap-2">
@@ -341,7 +357,7 @@ export default function DashboardPage() {
                   </div>
                   
                   <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                    Page {currentPage} of {totalPages}
+                    Showing {filteredPosts.length} of {totalData} items (Page {currentPage}/{totalPages})
                   </p>
                 </div>
               )}
