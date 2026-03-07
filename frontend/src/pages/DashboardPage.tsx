@@ -20,7 +20,7 @@ import {
   Heart,
   ChevronLeft,
   ChevronRight,
-  Layers // Icon tambahan untuk limit
+  Layers 
 } from "lucide-react";
 import api from "@/api/axiosInstance";
 
@@ -35,41 +35,68 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // --- STATE PAGINATION, LIMIT & SEARCH ---
+  // --- STATE PAGINATION, LIMIT, SEARCH & CATEGORY ---
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(8); // Default 8 item per halaman
+  const [limit, setLimit] = useState(8); 
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  // --- DATA FETCHING ---
+  // --- LOGIKA FETCHING DINAMIS ---
+  // Jika sedang filter/cari, kita tarik data banyak (100) agar tidak mencar antar slide
+  const isFiltering = !!activeCategory || !!searchTerm;
+  const effectiveLimit = isFiltering ? 100 : limit;
+  const effectivePage = isFiltering ? 1 : currentPage;
+
   const { data: userData, isLoading: isUserLoading } = useMe();
   const { data: categories } = useCategories();
   
-  // Sekarang mengirim currentPage dan limit ke hook
-  const { data: postResponse, isLoading: isPostsLoading } = usePosts(currentPage, limit);
+  const { data: postResponse, isLoading: isPostsLoading } = usePosts(
+    effectivePage, 
+    effectiveLimit
+  );
   
   const { data: favs } = useMyFavorites();
   const toggleFavorite = useToggleFavorite();
 
   const user = userData?.data || userData;
 
-  // --- PAGINATION METADATA DARI BACKEND ---
+  // --- DATA HANDLING ---
   const posts = postResponse?.data || [];
   const meta = postResponse?.meta;
   const totalPages = meta?.totalPages || 1;
   const totalData = meta?.totalData || 0;
 
-  // LOGIKA FILTER SEARCH
+  // --- LOGIKA FILTER (STRICT & PADAT) ---
   const filteredPosts = useMemo(() => {
-    if (!searchTerm) return posts;
-    return posts.filter((post: any) =>
-      post.judul.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.isi.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [posts, searchTerm]);
+    let result = [...posts];
+
+    if (activeCategory) {
+      result = result.filter((post: any) => {
+        const categoryName = post.category?.name?.toLowerCase() || post.category_name?.toLowerCase();
+        return categoryName === activeCategory.toLowerCase();
+      });
+    }
+
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      result = result.filter((post: any) => {
+        const matchTitle = post.judul?.toLowerCase().includes(searchLower);
+        const matchContent = post.isi?.toLowerCase().includes(searchLower);
+        const matchCategory = 
+          post.category?.name?.toLowerCase().includes(searchLower) || 
+          post.category_name?.toLowerCase().includes(searchLower);
+
+        return matchTitle || matchContent || matchCategory;
+      });
+    }
+
+    return result;
+  }, [posts, searchTerm, activeCategory]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setCurrentPage(1); // Reset ke hal 1 saat mengetik
+    setActiveCategory(null); 
+    setCurrentPage(1); 
   };
 
   const getCategoryImage = (name: string) => {
@@ -110,7 +137,7 @@ export default function DashboardPage() {
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-purple-100 px-8 py-4 shadow-sm">
         <div className="max-w-6xl mx-auto flex justify-between items-center gap-4">
           <div className="flex items-center gap-6 flex-1">
-            <div className="flex items-center gap-2 cursor-pointer group shrink-0" onClick={() => navigate("/dashboard")}>
+            <div className="flex items-center gap-2 cursor-pointer group shrink-0" onClick={() => { navigate("/dashboard"); setActiveCategory(null); setSearchTerm(""); setCurrentPage(1); }}>
               <div
                 className="p-2 rounded-xl text-white shadow-lg group-hover:rotate-12 transition-transform"
                 style={{ background: "linear-gradient(135deg, #ff99d8 0%, #967EFA 100%)" }}
@@ -126,14 +153,14 @@ export default function DashboardPage() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
               <input
                 type="text"
-                placeholder="Search your beauty needs..."
+                placeholder="Search beauty needs..."
                 value={searchTerm}
                 onChange={handleSearchChange}
                 className="w-full pl-12 pr-10 py-2.5 bg-zinc-100/50 border-none rounded-2xl focus:ring-2 focus:ring-[#967EFA]/50 transition-all outline-none text-sm font-medium"
               />
-              {searchTerm && (
+              {(searchTerm || activeCategory) && (
                 <button
-                  onClick={() => { setSearchTerm(""); setCurrentPage(1); }}
+                  onClick={() => { setSearchTerm(""); setActiveCategory(null); setCurrentPage(1); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
                 >
                   <X size={16} />
@@ -209,13 +236,21 @@ export default function DashboardPage() {
             {categories?.map((cat: any) => (
               <div
                 key={cat.id}
-                onClick={() => navigate(`/category/${cat.id}`)}
-                className="bg-white rounded-[2rem] p-5 flex flex-col items-center justify-center cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group"
+                onClick={() => {
+                  setActiveCategory(cat.name);
+                  setSearchTerm(""); 
+                  setCurrentPage(1);
+                }}
+                className={`bg-white rounded-[2rem] p-5 flex flex-col items-center justify-center cursor-pointer shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group ${
+                  activeCategory === cat.name ? "ring-2 ring-[#967EFA] bg-purple-50" : ""
+                }`}
               >
                 <div className="w-16 h-16 rounded-full overflow-hidden mb-3 ring-4 ring-purple-50 group-hover:ring-purple-100 transition-all">
                   <img src={getCategoryImage(cat.name)} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                 </div>
-                <span className="text-[10px] font-bold text-zinc-700 uppercase tracking-tight text-center group-hover:text-[#d857a6]">{cat.name}</span>
+                <span className={`text-[10px] font-bold uppercase tracking-tight text-center transition-colors ${
+                  activeCategory === cat.name ? "text-[#d857a6]" : "text-zinc-700 group-hover:text-[#d857a6]"
+                }`}>{cat.name}</span>
               </div>
             ))}
           </div>
@@ -226,29 +261,36 @@ export default function DashboardPage() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 px-2 gap-4">
             <div>
               <h2 className="text-3xl font-black text-zinc-800 uppercase italic tracking-tighter">
-                {searchTerm ? `Results for "${searchTerm}"` : <>New <span style={{ color: "#967EFA" }}>Arrivals</span></>}
+                {activeCategory 
+                  ? `Category: ${activeCategory}` 
+                  : searchTerm 
+                    ? `Results for "${searchTerm}"` 
+                    : <>New <span style={{ color: "#967EFA" }}>Arrivals</span></>
+                }
               </h2>
               <div className="h-1.5 w-12 mt-2 rounded-full" style={{ background: "linear-gradient(to right, #ff99d8, #967EFA)" }}></div>
             </div>
 
-            {/* LIMIT SELECTOR */}
-            <div className="flex items-center gap-2 bg-white/50 p-1.5 rounded-2xl border border-purple-50 shadow-sm">
-              <Layers size={14} className="ml-2 text-zinc-400" />
-              <span className="text-[10px] font-black text-zinc-400 uppercase mr-1">Show:</span>
-              {[4, 8, 12].map((num) => (
-                <button
-                  key={num}
-                  onClick={() => { setLimit(num); setCurrentPage(1); }}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                    limit === num 
-                    ? "bg-[#967EFA] text-white shadow-md" 
-                    : "text-zinc-500 hover:bg-purple-50"
-                  }`}
-                >
-                  {num}
-                </button>
-              ))}
-            </div>
+            {/* LIMIT SELECTOR - Disembunyikan saat filtering agar tampilan tetap padat */}
+            {!isFiltering && (
+              <div className="flex items-center gap-2 bg-white/50 p-1.5 rounded-2xl border border-purple-50 shadow-sm">
+                <Layers size={14} className="ml-2 text-zinc-400" />
+                <span className="text-[10px] font-black text-zinc-400 uppercase mr-1">Show:</span>
+                {[4, 8, 12].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => { setLimit(num); setCurrentPage(1); }}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                      limit === num 
+                      ? "bg-[#967EFA] text-white shadow-md" 
+                      : "text-zinc-500 hover:bg-purple-50"
+                    }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {isPostsLoading ? (
@@ -259,7 +301,14 @@ export default function DashboardPage() {
           ) : filteredPosts.length === 0 ? (
             <div className="text-center py-20">
               <div className="bg-zinc-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-zinc-400"><Search size={32} /></div>
-              <p className="font-bold text-zinc-500 italic">Oops! No beauty matches found for "{searchTerm}"</p>
+              <p className="font-bold text-zinc-500 italic">Oops! No beauty matches found</p>
+              <Button 
+                variant="ghost" 
+                className="mt-4 text-[#967EFA] font-bold"
+                onClick={() => { setSearchTerm(""); setActiveCategory(null); setCurrentPage(1); }}
+              >
+                Clear Filters
+              </Button>
             </div>
           ) : (
             <>
@@ -274,7 +323,7 @@ export default function DashboardPage() {
                     >
                       <div className="aspect-[4/5] overflow-hidden relative">
                         <img
-                          src={post.gambar} // SINKRONISASI GAMBAR: Langsung pakai URL lengkap dari backend
+                          src={post.gambar} 
                           alt={post.judul}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
@@ -308,6 +357,11 @@ export default function DashboardPage() {
                         <CardTitle className="text-lg font-bold text-zinc-800 line-clamp-1 uppercase tracking-tighter italic group-hover:text-[#d857a6] transition-colors">
                           {post.judul}
                         </CardTitle>
+                        {(post.category?.name || post.category_name) && (
+                           <span className="text-[9px] bg-purple-50 text-[#967EFA] px-2 py-0.5 rounded-md font-black uppercase tracking-wider">
+                             {post.category?.name || post.category_name}
+                           </span>
+                        )}
                         <p className="text-xs text-zinc-500 line-clamp-2 mt-2 leading-relaxed">{post.isi}</p>
                       </CardContent>
                     </Card>
@@ -315,8 +369,8 @@ export default function DashboardPage() {
                 })}
               </div>
 
-              {/* PAGINATION CONTROLS */}
-              {totalPages > 1 && (
+              {/* PAGINATION CONTROLS - Hanya muncul jika tidak sedang filtering */}
+              {!isFiltering && totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-16 pb-4">
                   <div className="flex items-center gap-2">
                     <Button
@@ -357,7 +411,7 @@ export default function DashboardPage() {
                   </div>
                   
                   <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                    Showing {filteredPosts.length} of {totalData} items (Page {currentPage}/{totalPages})
+                    Showing {filteredPosts.length} of {totalData} items
                   </p>
                 </div>
               )}

@@ -9,6 +9,18 @@ import myBackgroundImage from "@/assets/bg-dashboard.png";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
+// IMPORT ALERT DIALOG COMPONENTS
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 export default function DetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -17,21 +29,24 @@ export default function DetailPage() {
 
   // --- AUTH CONTEXT ---
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  
+  // STATE UNTUK ALERT DIALOG
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken"); 
+    
     if (token) {
       try {
-        // Cara aman decode JWT (menangani karakter khusus)
         const base64Url = token.split('.')[1];
         const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
         const payload = JSON.parse(window.atob(base64));
         
-        // Simpan sebagai Number agar perbandingan === akurat
         setCurrentUserId(Number(payload.id));
-        console.log("🆔 My User ID (from token):", payload.id);
+        console.log("✅ User ID terdeteksi:", payload.id);
       } catch (e) {
-        console.error("Gagal decode token:", e);
+        console.error("❌ Gagal decode token:", e);
       }
     }
   }, []);
@@ -46,7 +61,6 @@ export default function DetailPage() {
   const [comment, setComment] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // Cari produk berdasarkan ID
   const product = (Array.isArray(posts) ? posts : (posts as any)?.data || [])
     ?.find((p: any) => p.id.toString() === id);
 
@@ -73,34 +87,34 @@ export default function DetailPage() {
         if (fileInput) fileInput.value = "";
         queryClient.invalidateQueries({ queryKey: ["reviews", postId] });
       },
-      onError: (error: any) => {
-        toast.error(error.message || "Gagal mengirim ulasan.");
-      }
     });
   };
 
-  // --- HANDLER: HAPUS REVIEW ---
-  const handleDeleteReview = async (reviewId: number) => {
-    if (!window.confirm("Yakin ingin menghapus ulasan ini? Foto di server juga akan dihapus lho.")) return;
+  // --- HANDLER: HAPUS REVIEW (LOGIC FIX) ---
+  const confirmDelete = async () => {
+    if (!selectedReviewId) return;
 
     try {
-      const response = await fetch(`http://localhost:3000/api/reviews/${reviewId}`, {
+      const token = localStorage.getItem("accessToken");
+      const response = await fetch(`http://localhost:3000/api/reviews/${selectedReviewId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
-
-      const result = await response.json();
 
       if (response.ok) {
         toast.success("Ulasan berhasil dihapus! 🗑️");
         queryClient.invalidateQueries({ queryKey: ["reviews", postId] });
       } else {
+        const result = await response.json();
         toast.error(result.message || "Gagal menghapus.");
       }
     } catch (error) {
       toast.error("Terjadi kesalahan koneksi.");
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setSelectedReviewId(null);
     }
   };
 
@@ -110,8 +124,7 @@ export default function DetailPage() {
   return (
     <div className="min-h-screen bg-fixed bg-center bg-cover pb-20" style={{ backgroundImage: `url(${myBackgroundImage})` }}>
       <div className="max-w-4xl mx-auto pt-10 px-4">
-        
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6 bg-white/60 backdrop-blur-md rounded-full hover:bg-white/80">
+        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6 bg-white/60 backdrop-blur-md rounded-full hover:bg-white/80 transition-all">
           <ChevronLeft className="mr-2 h-4 w-4" /> Kembali
         </Button>
 
@@ -131,7 +144,7 @@ export default function DetailPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Kolom Kiri: Form */}
+          {/* Form Review */}
           <div className="md:col-span-1 bg-white/60 backdrop-blur-md rounded-[2.5rem] p-8 border border-white/40 shadow-lg h-fit">
             <h3 className="text-lg font-bold text-zinc-800 mb-4 italic">How's your glow?</h3>
             <div className="flex gap-2 mb-5">
@@ -149,7 +162,7 @@ export default function DetailPage() {
             </Button>
           </div>
 
-          {/* Kolom Kanan: List */}
+          {/* List Reviews */}
           <div className="md:col-span-2 space-y-6">
             <h3 className="text-xl font-black text-zinc-800 uppercase italic tracking-tighter">Glow Stories ({reviews?.length || 0})</h3>
             
@@ -164,8 +177,11 @@ export default function DetailPage() {
                   {/* --- TOMBOL HAPUS: Muncul saat hover kartu milik user --- */}
                   {Number(currentUserId) === Number(rev.user_id) && (
                     <button 
-                      onClick={() => handleDeleteReview(rev.id)}
-                      className="absolute top-6 right-6 p-2 text-zinc-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100 z-20 bg-white/50 rounded-full"
+                      onClick={() => {
+                        setSelectedReviewId(rev.id);
+                        setIsDeleteDialogOpen(true);
+                      }}
+                      className="absolute top-6 right-6 p-2 text-zinc-400 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100 z-20 bg-white/80 rounded-full shadow-sm"
                       title="Hapus Ulasan"
                     >
                       <Trash2 size={18} />
@@ -189,8 +205,8 @@ export default function DetailPage() {
                     <div className="mt-3 rounded-2xl overflow-hidden border border-white/40 shadow-sm max-w-[250px]">
                       <img 
                         src={`http://localhost:3000/api/view-image/${encodeURIComponent(rev.image_url)}`} 
+                        className="w-full h-auto object-cover max-h-[300px]" 
                         alt="Bukti" 
-                        className="w-full h-auto object-cover max-h-[300px] hover:scale-105 transition-transform"
                       />
                     </div>
                   )}
@@ -200,6 +216,35 @@ export default function DetailPage() {
           </div>
         </div>
       </div>
+
+      {/* --- ESTETIK ALERT DIALOG COMPONENT --- */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="rounded-[2.5rem] border-white/40 bg-white/90 backdrop-blur-xl shadow-2xl p-8">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-black italic text-zinc-800 uppercase tracking-tighter flex items-center gap-2">
+              Hapus Ceritamu? <Trash2 className="text-rose-500" size={24} />
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-500 text-sm leading-relaxed pt-2">
+              Tindakan ini tidak bisa dibatalkan. Ulasan dan foto buktimu akan hilang dari Glow Stories selamanya. Yakin nih?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-8 gap-3 sm:gap-0">
+            <AlertDialogCancel className="rounded-full border-none bg-zinc-100 font-bold text-zinc-500 hover:bg-zinc-200 px-6">
+              BATAL
+            </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={confirmDelete}
+                      // Ganti bg-gradient-to-r dengan kode hex yang kamu minta
+                      className="rounded-full font-bold text-white shadow-lg shadow-pink-200 hover:opacity-90 px-6 border-none transition-all active:scale-95"
+                      style={{ 
+                        background: "linear-gradient(90deg, #ff99d8 0%, #967EFA 100%)" 
+                      }}
+                    >
+                      YA, HAPUS SEKARANG
+                    </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

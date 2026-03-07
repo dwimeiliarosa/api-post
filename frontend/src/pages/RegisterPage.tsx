@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { registerSchema, RegisterFormValues } from "@/lib/validations/auth"; // Pastikan schema register sudah ada di folder ini
+import { registerSchema, RegisterFormValues } from "@/lib/validations/auth"; 
 import api from "@/api/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Loader2 } from "lucide-react";
+import Swal from "sweetalert2"; // 1. IMPORT SWEETALERT
 
-// 1. IMPORT ASSET GAMBAR (Gunakan asset yang sama dengan login)
+// 1. IMPORT ASSET GAMBAR
 import bg1 from "../assets/bg1.png";
 import bg2 from "../assets/bg2.png";
 import bg3 from "../assets/bg3.png";
@@ -22,7 +23,27 @@ export default function RegisterPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Data Slider (Sama dengan Login agar senada)
+  // 2. TAMBAHKAN HELPER TOAST CANTIK (Sama dengan Login agar konsisten)
+  const showToast = (message: string, type: 'success' | 'error') => {
+    Swal.fire({
+      toast: true,
+      position: 'top',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+      icon: type,
+      width: 'auto', 
+      title: `<div style="font-family: 'Inter', sans-serif; font-weight: 500; color: white; font-size: 14px; padding: 0 10px; white-space: nowrap;">${message}</div>`,
+      background: type === 'success' 
+        ? 'linear-gradient(to right, #B799FF, #967EFA)' 
+        : 'linear-gradient(to right, #ad4141, #a70808)',
+      iconColor: '#ffffff',
+      customClass: {
+        popup: 'rounded-full px-6 py-1 shadow-2xl border-none mt-10 animate__animated animate__fadeInDown',
+      }
+    });
+  };
+
   const slides = [
     { url: bg1, title: "Join the Magic", desc: "Create your account and explore the ultimate beauty directory." },
     { url: bg2, title: "Your Beauty Space", desc: "Manage and curate premium beauty products with ease." },
@@ -35,7 +56,6 @@ export default function RegisterPage() {
     defaultValues: { username: "", email: "", password: "" },
   });
 
-  // Logika Auto-Slide (Sama dengan Login)
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
@@ -43,14 +63,21 @@ export default function RegisterPage() {
     return () => clearInterval(timer);
   }, [slides.length]);
 
+  // 3. UPDATE LOGIKA ONSUBMIT DENGAN POP-UP CANTIK
   const onSubmit = async (data: RegisterFormValues) => {
     setIsSubmitting(true);
     try {
       await api.post("/register", data);
-      alert("Registrasi Berhasil! Silakan Login.");
-      navigate("/login");
+      
+      // Menggunakan Toast Sukses
+      showToast("Registrasi Berhasil! Selamat datang di GlowUp ✨", "success");
+      
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000); // Beri jeda agar user bisa melihat pop-up sukses
     } catch (error: any) {
-      alert(error.response?.data?.message || "Registrasi Gagal. Cek kembali data kamu.");
+      const errorMsg = error.response?.data?.message || "Registrasi Gagal. Cek kembali data kamu.";
+      showToast(errorMsg, "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -112,7 +139,6 @@ export default function RegisterPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             
-            {/* Field Username */}
             <FormField
               control={form.control}
               name="username"
@@ -135,7 +161,6 @@ export default function RegisterPage() {
               )}
             />
 
-            {/* Field Email */}
             <FormField
               control={form.control}
               name="email"
@@ -158,7 +183,6 @@ export default function RegisterPage() {
               )}
             />
 
-            {/* Field Password */}
             <FormField
               control={form.control}
               name="password"
