@@ -8,6 +8,7 @@ import DetailPage from "./pages/DetailPage";
 import CreatePost from "./pages/CreatePost";
 import EditPost from "./pages/EditPost";
 import FavoritesPage from "./pages/FavoritesPage";
+import LandingPage from "./pages/LandingPage";
 
 // Import Profile
 import ProfilePage from "./pages/user/ProfilePage";
@@ -32,6 +33,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           {/* Auth Routes */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/" element={<Navigate to="/login" />} />
