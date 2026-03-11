@@ -1,14 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { 
-  Sparkles, 
-  Search, 
-  MessageSquareHeart, 
-  ShieldCheck, 
+import {  
+  Search,  
+  MessageSquareHeart,  
+  ShieldCheck,  
   ArrowRight,
   Star
 } from "lucide-react";
-import bg1 from "@/assets/bg1.png"; // Mengambil asset yang sudah ada
+import bg1 from "@/assets/landingpage.jpg";  
+import logoGlad2Glow from "@/assets/logoglad2glow.jpg"; 
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -17,16 +17,29 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#FDFBF9] font-sans overflow-x-hidden">
       
       {/* --- NAVBAR --- */}
-      <nav className="fixed top-0 w-full z-50 border-b border-white/20 bg-white/30 backdrop-blur-md px-6 py-4 flex justify-between items-center">
+      {/* Update: Menghilangkan backdrop-blur dan mengganti ke warna solid yang senada */}
+      <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-[#967EFA] px-6 py-4 flex justify-between items-center shadow-lg">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#ff99d8] to-[#967EFA] flex items-center justify-center">
-            <Sparkles className="text-white w-5 h-5" />
+          <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center border border-zinc-100 shadow-sm">
+            <img  
+              src={logoGlad2Glow}  
+              alt="Glad2Glow Logo"  
+              className="w-full h-full object-cover"
+            />
           </div>
-          <span className="text-xl font-serif italic font-black tracking-tighter text-zinc-800">GlowUp.Space</span>
+          <span className="text-xl font-serif italic font-black tracking-tighter text-white">
+            Glad2Glow
+          </span>
         </div>
         <div className="flex gap-4">
-          <Button variant="ghost" onClick={() => navigate("/login")} className="text-sm font-bold text-zinc-600 hover:text-[#967EFA]">LOGIN</Button>
-          <Button 
+<Button 
+            variant="ghost" 
+            onClick={() => navigate("/login")} 
+            className="text-sm font-bold text-white hover:text-white hover:bg-white/20 transition-colors"
+          >
+            LOGIN
+          </Button>
+          <Button  
             onClick={() => navigate("/register")}
             className="rounded-full px-6 font-bold text-white shadow-lg border-none"
             style={{ background: "linear-gradient(to right, #ff99d8, #967EFA)" }}
@@ -55,9 +68,9 @@ export default function LandingPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4">
-          <Button 
+          <Button  
             onClick={() => navigate("/register")}
-            className="h-16 px-10 rounded-full text-lg font-bold shadow-2xl transition-all hover:scale-105"
+            className="h-16 px-10 rounded-full text-lg font-bold text-white shadow-2xl transition-all hover:scale-105"
             style={{ background: "linear-gradient(to right, #ff99d8, #967EFA)" }}
           >
             Start My Journey <ArrowRight className="ml-2 w-5 h-5" />
@@ -83,20 +96,20 @@ export default function LandingPage() {
       {/* --- FEATURES --- */}
       <section className="py-24 px-6 bg-white">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
-          <FeatureCard 
-            icon={<Search className="text-white" />} 
-            title="Smart Search" 
-            desc="Cari produk berdasarkan kategori, brand, atau jenis kulitmu dengan mudah." 
+          <FeatureCard  
+            icon={<Search className="text-white" />}  
+            title="Smart Search"  
+            desc="Cari produk berdasarkan kategori, brand, atau jenis kulitmu dengan mudah."  
           />
-          <FeatureCard 
-            icon={<MessageSquareHeart className="text-white" />} 
-            title="Honest Reviews" 
-            desc="Baca pengalaman asli dari pengguna lain sebelum memutuskan membeli produk." 
+          <FeatureCard  
+            icon={<MessageSquareHeart className="text-white" />}  
+            title="Honest Reviews"  
+            desc="Baca pengalaman asli dari pengguna lain sebelum memutuskan membeli produk."  
           />
-          <FeatureCard 
-            icon={<ShieldCheck className="text-white" />} 
-            title="Curated Lists" 
-            desc="Simpan produk favoritmu dan buat koleksi skincare impian dalam satu tempat." 
+          <FeatureCard  
+            icon={<ShieldCheck className="text-white" />}  
+            title="Curated Lists"  
+            desc="Simpan produk favoritmu dan buat koleksi skincare impian dalam satu tempat."  
           />
         </div>
       </section>
@@ -121,8 +134,8 @@ export default function LandingPage() {
 
       {/* --- FOOTER --- */}
       <footer className="py-20 px-6 text-center border-t border-zinc-100">
-        <h2 className="text-3xl font-serif italic text-zinc-800 mb-6">Ready to glow up, Glowvers</h2>
-        <Button 
+        <h2 className="text-3xl font-serif italic text-zinc-800 mb-6">Ready to glow up, Glowvers?</h2>
+        <Button  
           onClick={() => navigate("/register")}
           className="rounded-full px-12 h-14 font-bold text-white shadow-xl shadow-purple-200"
           style={{ background: "linear-gradient(to right, #ff99d8, #967EFA)" }}

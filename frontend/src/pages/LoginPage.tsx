@@ -8,10 +8,10 @@ import { Mail, Lock, Loader2 } from "lucide-react";
 import Swal from "sweetalert2";
 
 // ASSET GAMBAR
-import bg1 from "../assets/bg1.png";
-import bg2 from "../assets/bg2.png";
-import bg3 from "../assets/bg3.png";
-import bg4 from "../assets/bg4.png";
+import bg1 from "../assets/bg1.jpg";
+import bg2 from "../assets/bg2.jpg";
+import bg3 from "../assets/bg3.jpg";
+import bg4 from "../assets/bg4.jpg";
 
 // Shadcn Components
 import { Button } from "@/components/ui/button";
@@ -44,12 +44,12 @@ export default function LoginPage() {
     });
   };
 
-  const slides = [
-    { url: bg1, title: "Welcome Back", desc: "Discover the magic in every touch of your beauty directory." },
-    { url: bg2, title: "Define Your Glow", desc: "Manage your premium beauty products with an elegant system." },
-    { url: bg3, title: "Pure Elegance", desc: "A modern and intuitive admin experience for beauty experts." },
-    { url: bg4, title: "GlowUp.Space Portal", desc: "Your gateway to professional content management." }
-  ];
+    const slides = [
+        { url: bg1, title: "Your Personal Skin Guide", desc: "Temukan kecocokan produk Glad2Glow melalui tes tipe kulit yang dirancang khusus untukmu." },
+        { url: bg2, title: "Smart Product Matching", desc: "Sistem rekomendasi kami bekerja untuk memastikan setiap produk yang kamu pilih memberikan hasil maksimal." },
+        { url: bg3, title: "Beauty Review Hub", desc: "Baca pengalaman nyata pengguna Glad2Glow dan bagikan perjalanan skin journey milikmu." },
+        { url: bg4, title: "GlowUp.Space Experience", desc: "Solusi modern untuk manajemen perawatan diri dan konsultasi tipe kulit dalam satu platform." }
+      ];
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -121,7 +121,7 @@ export default function LoginPage() {
           <p className="text-[11px] font-bold tracking-[0.4em] uppercase mb-4" style={{ color: "#B799FF" }}>
             Experience the Glow
           </p>
-          <h1 className="text-4xl font-serif text-zinc-800 leading-tight">Welcome</h1>
+          <h1 className="text-4xl font-serif text-zinc-800 leading-tight">Hallo Glowvers!!</h1>
         </div>
 
         <Form {...form}>
@@ -135,7 +135,7 @@ export default function LoginPage() {
                   <FormControl>
                     <div className="relative border-b border-zinc-200 focus-within:border-[#B799FF] transition-all">
                       <Mail className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 z-10" />
-                      <Input placeholder="admin@makeup.com" {...field} style={{ paddingLeft: '2.5rem' }} className="h-12 border-none bg-transparent focus-visible:ring-0 shadow-none text-zinc-800 w-full" />
+                      <Input placeholder="Glowvers@email.com" {...field} style={{ paddingLeft: '2.5rem' }} className="h-12 border-none bg-transparent focus-visible:ring-0 shadow-none text-zinc-800 w-full" />
                     </div>
                   </FormControl>
                   <FormMessage className="text-[10px]" />

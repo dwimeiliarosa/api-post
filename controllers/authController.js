@@ -82,14 +82,14 @@ exports.login = async (req, res) => {
       [refreshToken, user.id]
     );
 
-res.json({
-  status: 'success',
-  message: 'Login Berhasil',
-  accessToken,
-  refreshToken,
-  role: user.role,
-  username: user.username // <-- TAMBAHKAN BARIS INI
-});
+    res.json({
+      status: 'success',
+      message: 'Login Berhasil',
+      accessToken,
+      refreshToken,
+      role: user.role,
+      username: user.username
+    });
 
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -134,10 +134,15 @@ exports.refreshToken = async (req, res) => {
 // ================= PROFILE (GET) =================
 exports.profile = async (req, res) => {
   try {
+    // UPDATED: Menambahkan skin_type ke dalam SELECT
     const result = await pool.query(
-      'SELECT id, username, email, role, avatar FROM users WHERE id = $1',
+      'SELECT id, username, email, role, avatar, skin_type FROM users WHERE id = $1',
       [req.user.id]
     );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User tidak ditemukan' });
+    }
 
     res.json({
       status: 'success',
@@ -146,7 +151,8 @@ exports.profile = async (req, res) => {
         username: result.rows[0].username,
         email: result.rows[0].email,
         role: result.rows[0].role,
-        avatar: result.rows[0].avatar || null 
+        avatar: result.rows[0].avatar || null,
+        skin_type: result.rows[0].skin_type || null // UPDATED: return skin_type
       }
     });
   } catch (error) {
@@ -159,15 +165,17 @@ exports.profile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { username, email } = req.body;
+    // UPDATED: Mengambil skin_type dari req.body
+    const { username, email, skin_type } = req.body;
 
     if (!username?.trim() || !email?.trim()) {
       return res.status(400).json({ message: 'Username dan Email tidak boleh kosong' });
     }
 
+    // UPDATED: Menambahkan skin_type ke dalam UPDATE query
     const result = await pool.query(
-      'UPDATE users SET username = $1, email = $2 WHERE id = $3 RETURNING id, username, email, role, avatar',
-      [username.trim(), email.trim(), userId]
+      'UPDATE users SET username = $1, email = $2, skin_type = $3 WHERE id = $4 RETURNING id, username, email, role, avatar, skin_type',
+      [username.trim(), email.trim(), skin_type, userId]
     );
 
     if (result.rows.length === 0) {
@@ -213,7 +221,7 @@ exports.updateAvatar = async (req, res) => {
 
     const avatarUrl = `http://localhost:3000/api/view-image/${fileName.replace('avatars/', 'avatars%2F')}`;
 
-    const query = 'UPDATE users SET avatar = $1 WHERE id = $2 RETURNING id, username, email, avatar';
+    const query = 'UPDATE users SET avatar = $1 WHERE id = $2 RETURNING id, username, email, avatar, skin_type';
     const values = [avatarUrl, userId];
     
     const result = await pool.query(query, values);

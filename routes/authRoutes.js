@@ -129,6 +129,10 @@ router.get('/auth/me', authenticateToken, authController.profile);
  *               email:
  *                 type: string
  *                 example: dwi_new@email.com
+ *               skin_type:
+ *                 type: string
+ *                 enum: [Oily, Dry, Sensitive, Combination, Normal]
+ *                 example: Oily
  */
 router.put('/update-profile', authenticateToken, authController.updateProfile);
 

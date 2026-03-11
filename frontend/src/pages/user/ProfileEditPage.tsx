@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, User, Mail, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, User, Mail, Loader2, Sparkles } from "lucide-react";
 
 // 1. Import toast dari sonner
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ export default function ProfileEditPage() {
   const [formData, setFormData] = useState({
     username: "",
     email: "",
+    skin_type: "", // TAMBAHKAN: State awal skin_type
   });
 
   useEffect(() => {
@@ -25,17 +26,19 @@ export default function ProfileEditPage() {
       setFormData({
         username: user.username || "",
         email: user.email || "",
+        skin_type: user.skin_type || "", // TAMBAHKAN: Sinkronisasi data dari API
       });
     }
   }, [user]);
 
-const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     const payload = {
       id: user?.id,
       username: formData.username,
       email: formData.email,
+      skin_type: formData.skin_type, // TAMBAHKAN: Payload untuk dikirim ke backend
     };
 
     // 1. Buat loading toast dan simpan ID-nya
@@ -47,8 +50,7 @@ const handleSubmit = (e: React.FormEvent) => {
         // Update toast jadi sukses
         toast.success('Profile updated successfully! ✨', { id: toastId });
         
-        // PINDAH HALAMAN: Gunakan navigate bawaan react-router-dom
-        // replace: true akan menghapus halaman edit dari history agar tidak perlu klik back 2x
+        // PINDAH HALAMAN
         navigate("/user/profile", { replace: true });
       },
       onError: (err: any) => {
@@ -72,12 +74,12 @@ const handleSubmit = (e: React.FormEvent) => {
     <div className="min-h-screen bg-[#fcfaff] p-6 md:p-12">
       <div className="max-w-xl mx-auto">
         <Button 
-  variant="ghost" 
-  onClick={() => window.location.href = "/user/profile"} 
-  className="mb-6 hover:bg-white rounded-full font-bold text-zinc-400 transition-all"
->
-  <ArrowLeft className="mr-2 h-4 w-4" /> Batal
-</Button>
+          variant="ghost" 
+          onClick={() => navigate("/user/profile")} 
+          className="mb-6 hover:bg-white rounded-full font-bold text-zinc-400 transition-all"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> Batal
+        </Button>
 
         <Card className="border-none shadow-[0_20px_50px_rgba(150,126,250,0.12)] rounded-[2.5rem] overflow-hidden bg-white/90 backdrop-blur-md">
           <CardHeader className="pb-2 pt-10 px-10">
@@ -91,6 +93,7 @@ const handleSubmit = (e: React.FormEvent) => {
 
           <CardContent className="p-10">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* USERNAME */}
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-zinc-400">Username</Label>
                 <div className="relative group">
@@ -104,6 +107,7 @@ const handleSubmit = (e: React.FormEvent) => {
                 </div>
               </div>
 
+              {/* EMAIL */}
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-zinc-400">Email Address</Label>
                 <div className="relative group">
@@ -115,6 +119,30 @@ const handleSubmit = (e: React.FormEvent) => {
                     className="pl-12 py-7 rounded-2xl border-zinc-100 bg-zinc-50/50 focus-visible:ring-[#967EFA] focus-visible:ring-offset-0 focus-visible:border-[#967EFA] transition-all"
                     placeholder="Enter your email"
                   />
+                </div>
+              </div>
+
+              {/* SKIN TYPE SELECT - NEW! */}
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-zinc-400">Your Skin Type</Label>
+                <div className="relative group">
+                  <Sparkles className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-300 group-focus-within:text-[#967EFA] transition-colors" size={18} />
+                  <select 
+                    value={formData.skin_type}
+                    onChange={(e) => setFormData({...formData, skin_type: e.target.value})}
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl border border-zinc-100 bg-zinc-50/50 focus:ring-2 focus:ring-[#967EFA] focus:border-transparent outline-none transition-all text-sm appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>Select your skin type</option>
+                    <option value="Oily">Oily</option>
+                    <option value="Dry">Dry</option>
+                    <option value="Sensitive">Sensitive</option>
+                    <option value="Combination">Combination</option>
+                    <option value="Normal">Normal</option>
+                  </select>
+                  {/* Custom Arrow for Select */}
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                    ▼
+                  </div>
                 </div>
               </div>
 

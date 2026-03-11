@@ -6,9 +6,20 @@ export const useMyFavorites = () => {
   return useQuery({
     queryKey: ["my-favorites"], 
     queryFn: async () => {
-      const response = await api.get("/favorites/me"); 
-      // Karena backend mengirim { status: 'success', data: [...] }
-      return response.data.data; 
+      try {
+        const response = await api.get("/favorites/me"); 
+        console.log("--- DEBUG FAVORITES ---");
+        console.log("Raw Response:", response.data);
+        
+        // Cek apakah data ada di response.data.data atau langsung di response.data
+        const actualData = response.data.data || response.data;
+        
+        console.log("Processed Data:", actualData);
+        return actualData; 
+      } catch (err) {
+        console.error("API Error Favorites:", err);
+        throw err;
+      }
     },
   });
 };

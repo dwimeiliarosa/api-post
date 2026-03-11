@@ -11,22 +11,54 @@ const getPublicUrl = (fileName) => {
 
 const getAllPosts = async (req, res) => {
   try {
-    // 1. Gunakan utilitas pagination (mengambil limit dari Swagger/URL)
+    // 1. Ambil query parameter 'search' dan utilitas pagination
+    const { search, category_id } = req.query;
     const { limit, offset, page } = getPagination(req.query);
 
-    const postsQuery = `
+    let postsQuery = `
       SELECT p.*, c.name AS category_name 
       FROM posts p 
-      LEFT JOIN categories c ON p.category_id = c.id 
-      ORDER BY p.created_at DESC 
-      LIMIT $1 OFFSET $2
+      LEFT JOIN categories c ON p.category_id = c.id
     `;
     
-    const countQuery = `SELECT COUNT(*) FROM posts`;
+    let countQuery = `SELECT COUNT(*) FROM posts p LEFT JOIN categories c ON p.category_id = c.id`;
+    
+    let queryParams = [];
+    let whereClauses = [];
+    let paramIndex = 1;
 
+    // 2. Logika Pencarian (Judul & Nama Kategori)
+    if (search) {
+      const searchPattern = `%${search}%`;
+      whereClauses.push(`(p.judul ILIKE $${paramIndex} OR c.name ILIKE $${paramIndex})`);
+      queryParams.push(searchPattern);
+      paramIndex++;
+    }
+
+    // 3. Logika Filter Kategori (Jika ada category_id di query)
+    if (category_id && category_id !== 'all') {
+      whereClauses.push(`p.category_id = $${paramIndex}`);
+      queryParams.push(category_id);
+      paramIndex++;
+    }
+
+    // Gabungkan WHERE clause jika ada filter
+    if (whereClauses.length > 0) {
+      const fullWhereClause = ` WHERE ` + whereClauses.join(' AND ');
+      postsQuery += fullWhereClause;
+      countQuery += fullWhereClause;
+    }
+
+    // 4. Tambahkan Order dan Pagination
+    postsQuery += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    
+    // Parameter final untuk query utama (Params pencarian + limit + offset)
+    const finalPostsParams = [...queryParams, limit, offset];
+
+    // Eksekusi query secara paralel untuk efisiensi
     const [postsResult, countResult] = await Promise.all([
-      pool.query(postsQuery, [limit, offset]),
-      pool.query(countQuery)
+      pool.query(postsQuery, finalPostsParams),
+      pool.query(countQuery, queryParams)
     ]);
 
     const totalData = parseInt(countResult.rows[0].count);
@@ -47,7 +79,7 @@ const getAllPosts = async (req, res) => {
 
 const createPost = async (req, res) => {
   try {
-    const { judul, isi, category_id } = req.body;
+    const { judul, isi, category_id, suitable_for } = req.body;
     const gambarFile = req.file; 
     const userId = req.user.id;
 
@@ -68,9 +100,9 @@ const createPost = async (req, res) => {
     });
 
     const result = await pool.query(
-      `INSERT INTO posts (judul, isi, gambar, category_id, user_id)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [judul.trim(), isi.trim(), optimizedImageName, category_id, userId]
+      `INSERT INTO posts (judul, isi, gambar, category_id, user_id, suitable_for)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [judul.trim(), isi.trim(), optimizedImageName, category_id, userId, suitable_for]
     );
 
     res.status(201).json({
@@ -86,7 +118,7 @@ const createPost = async (req, res) => {
 const updatePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const { judul, isi, category_id } = req.body;
+    const { judul, isi, category_id, suitable_for } = req.body;
     const newGambarFile = req.file;
 
     const checkPost = await pool.query('SELECT gambar FROM posts WHERE id=$1', [id]);
@@ -106,8 +138,8 @@ const updatePost = async (req, res) => {
     }
 
     const result = await pool.query(
-      `UPDATE posts SET judul=$1, isi=$2, category_id=$3, gambar=$4 WHERE id=$5 RETURNING *`,
-      [judul.trim(), isi.trim(), category_id, finalImageName, id]
+      `UPDATE posts SET judul=$1, isi=$2, category_id=$3, gambar=$4, suitable_for=$5 WHERE id=$6 RETURNING *`,
+      [judul.trim(), isi.trim(), category_id, finalImageName, suitable_for, id]
     );
 
     res.json({ 
@@ -139,9 +171,22 @@ const getPostById = async (req, res) => {
       `SELECT p.*, c.name AS category_name FROM posts p 
        LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = $1`, [id]
     );
+    
     if (result.rows.length === 0) return res.status(404).json({ message: 'Not found' });
-    res.json({ status: 'success', data: { ...result.rows[0], gambar: getPublicUrl(result.rows[0].gambar) } });
-  } catch (err) { res.status(500).json({ message: err.message }); }
+
+    const post = result.rows[0];
+
+    res.json({ 
+      status: 'success', 
+      data: { 
+        ...post, 
+        suitable_for: post.suitable_for || "", 
+        gambar: post.gambar ? getPublicUrl(post.gambar) : null 
+      } 
+    });
+  } catch (err) { 
+    res.status(500).json({ message: err.message }); 
+  }
 };
 
 const toggleFavorite = async (req, res) => {
@@ -158,7 +203,6 @@ const toggleFavorite = async (req, res) => {
   } catch (error) { res.status(500).json({ message: error.message }); }
 };
 
-// EXPORT SEMUA FUNGSI (Penting: Nama harus sama dengan yang dipanggil di Routes)
 module.exports = {
   getAllPosts,
   createPost,

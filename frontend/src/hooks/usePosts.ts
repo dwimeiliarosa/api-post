@@ -9,26 +9,41 @@ interface PostResponse {
     currentPage: number;
     totalPages: number;
     totalData: number;
-    perPage: number; // Ditambahkan agar frontend tahu berapa data yang dikirim backend
+    perPage: number; 
   };
 }
 
-export const usePosts = (page: number = 1, limit?: number) => { 
+// Menambahkan searchTerm (opsional) ke parameter agar bisa digunakan untuk server-side searching
+export const usePosts = (
+  page: number = 1, 
+  limit?: number, 
+  categoryId?: string | number,
+  searchTerm?: string // <-- Penambahan parameter search
+) => { 
   const queryClient = useQueryClient();
 
   // 1. Fetching Data Postingan
   const { data, isLoading } = useQuery<PostResponse>({
-    // QueryKey menyertakan page dan limit agar cache tidak tumpang tindih
-    queryKey: ["posts", page, limit], 
+    // queryKey harus menyertakan categoryId dan searchTerm agar 
+    // React Query melakukan fetch ulang saat kategori atau kata kunci berubah
+    queryKey: ["posts", page, limit, categoryId, searchTerm], 
     queryFn: async () => {
-      // Menggunakan URLSearchParams agar penyusunan query string lebih rapi
       const params = new URLSearchParams({
         page: page.toString(),
       });
 
-      // Jika limit diberikan (dari swagger atau props), tambahkan ke query string
       if (limit) {
         params.append("limit", limit.toString());
+      }
+
+      // Logika Filter Kategori
+      if (categoryId && categoryId !== "all") {
+        params.append("category_id", categoryId.toString());
+      }
+
+      // Logika Pencarian: Kirim kata kunci ke backend jika ada
+      if (searchTerm) {
+        params.append("search", searchTerm);
       }
       
       const response = await api.get(`/posts?${params.toString()}`);
@@ -42,7 +57,6 @@ export const usePosts = (page: number = 1, limit?: number) => {
       await api.delete(`/posts/${id}`);
     },
     onSuccess: () => {
-      // Menghapus cache lama agar UI sinkron dengan database
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       alert("Postingan berhasil dihapus! ✨");
     },
@@ -51,6 +65,8 @@ export const usePosts = (page: number = 1, limit?: number) => {
   // 3. Fungsi Tambah Postingan Baru
   const createMutation = useMutation({
     mutationFn: async (formData: FormData) => {
+      console.log("Mengirim data ke backend:", Object.fromEntries(formData.entries()));
+
       const response = await api.post("/posts", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -81,7 +97,6 @@ export const usePosts = (page: number = 1, limit?: number) => {
       return response.data;
     },
     onSuccess: () => {
-      // Invalidate agar status "isFavorited" ter-update di UI
       queryClient.invalidateQueries({ queryKey: ["posts"] });
     },
     onError: (error: any) => {
@@ -93,17 +108,12 @@ export const usePosts = (page: number = 1, limit?: number) => {
   });
 
   return {
-    // Data & State
     data, 
     isLoading,
-    
-    // Actions (Fungsi yang dipanggil di Component)
     deletePost: deleteMutation.mutate,
     createPost: createMutation.mutate,
     updatePost: updateMutation.mutate,
     toggleFavorite: favoriteMutation.mutate,
-    
-    // Loading States (Untuk button loading spinner)
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
     isFavoriting: favoriteMutation.isPending,

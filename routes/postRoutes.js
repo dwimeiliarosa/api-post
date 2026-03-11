@@ -46,8 +46,7 @@ router.get('/posts', postController.getAllPosts);
  * /posts:
  *   post:
  *     summary: Buat postingan baru
- *     tags:
- *       - Posts
+ *     tags: [Posts]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -63,24 +62,19 @@ router.get('/posts', postController.getAllPosts);
  *                 type: string
  *               category_id:
  *                 type: integer
+ *               suitable_for:
+ *                 type: string
+ *                 enum: [Oily, Dry, Sensitive, Combination, Normal]
+ *                 description: Jenis kulit yang cocok untuk produk ini
  *               gambar:
  *                 type: string
  *                 format: binary
- *     responses:
- *       201:
- *         description: Post berhasil dibuat
- *       400:
- *         description: Validasi gagal
- *       401:
- *         description: Unauthorized
- *       500:
- *         description: Kesalahan server
  */
 router.post(
   '/posts', 
   authenticateToken, 
   isAdmin, 
-  upload.single('gambar'), // Sesuai permintaanmu: kembali ke single
+  upload.single('gambar'), 
   postController.createPost
 );
 
@@ -113,8 +107,7 @@ router.get('/posts/:id', postController.getPostById);
  * /posts/{id}:
  *   put:
  *     summary: Update postingan
- *     tags:
- *       - Posts
+ *     tags: [Posts]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -137,20 +130,16 @@ router.get('/posts/:id', postController.getPostById);
  *                 type: string
  *               category_id:
  *                 type: integer
+ *               suitable_for:             # TAMBAHKAN INI
+ *                 type: string
+ *                 enum: [Oily, Dry, Sensitive, Combination, Normal]
  *               gambar:
  *                 type: string
  *                 format: binary
  *     responses:
  *       200:
  *         description: Post berhasil diupdate
- *       400:
- *         description: Validasi gagal
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Post tidak ditemukan
- *       500:
- *         description: Kesalahan server
+ *       # ... rest of responses
  */
 router.put(
   '/posts/:id',

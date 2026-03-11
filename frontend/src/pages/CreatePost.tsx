@@ -13,19 +13,18 @@ export default function CreatePost() {
 
   const handleAddPost = (data: any) => {
     const formData = new FormData();
-    
-    // 1. Pastikan nama field ini sama dengan di Controller Backend
     formData.append("judul", data.judul);
     formData.append("isi", data.isi);
+    formData.append("category_id", data.category_id);
     
-    // 2. Kirim ID sebagai string
-    formData.append("category_id", data.category_id.toString());
-    
-    // 3. KUNCI UTAMA: Menggunakan field "gambar" sesuai log backend kamu
-    if (data.gambar) {
-      formData.append("gambar", data.gambar); 
+    // 1. PASTIKAN BARIS INI ADA UNTUK GLOW-CHECK
+    formData.append("suitable_for", data.suitable_for); 
+
+    if (data.gambar && data.gambar instanceof File) {
+      formData.append("gambar", data.gambar);
     }
 
+    // 2. GUNAKAN FUNGSI createPost DARI HOOK usePosts
     createPost(formData, {
       onSuccess: () => navigate("/dashboard"),
       onError: (error: any) => {
@@ -44,7 +43,7 @@ export default function CreatePost() {
 
       <div className="relative z-10 w-full max-w-2xl px-6 mt-10">
         
-        {/* TOMBOL KEMBALI: Ganti hover ke Purple */}
+        {/* TOMBOL KEMBALI */}
         <Button 
           variant="ghost" 
           onClick={() => navigate("/dashboard")} 
@@ -53,7 +52,7 @@ export default function CreatePost() {
           <ChevronLeft className="mr-2 h-4 w-4" /> Kembali ke Dashboard
         </Button>
         
-        {/* HEADER SECTION: Ganti Pink ke Lavender */}
+        {/* HEADER SECTION */}
         <div className="bg-white/60 backdrop-blur-md px-6 py-5 rounded-[2rem] border border-white/40 shadow-xl mb-6 flex flex-col items-center text-center">
           {/* Icon Kecil di Tengah - Lavender Gradient */}
           <div 

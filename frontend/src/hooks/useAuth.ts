@@ -21,35 +21,53 @@ export const useLogin = () => {
       }
     },
     onError: (error: any) => {
-      // Alert login tetap dibiarkan jika kamu belum memasang toast di halaman login
+      // Menggunakan notifikasi standar jika belum ada Toast di login
       alert(error.response?.data?.message || "Login gagal, silakan cek kembali email/password anda.");
     }
   });
 };
 
 /**
- * HOOK: GET PROFILE (useMe / useProfile)
- * Mengambil data user yang sedang login. 
+ * HOOK: GET PROFILE (useMe)
+ * Mengambil data user yang sedang login termasuk skin_type.
+ * Komponen DetailPage akan memanggil data 'user' dari sini.
  */
 export const useMe = () => {
   return useQuery({
     queryKey: ["auth-me"],
     queryFn: async () => {
       const res = await api.get("/auth/me");
-      console.log("Data User yang Dikirim ke Komponen:", res.data.user);
+      // Memastikan data user yang dikirim memiliki properti skin_type
+      console.log("Data User Profile:", res.data.user);
       return res.data.user;
     },
     enabled: !!localStorage.getItem("accessToken"),
-    staleTime: 1000 * 60 * 5, 
+    staleTime: 1000 * 60 * 5, // Cache selama 5 menit
   });
 };
 
-// Alias untuk useMe
+/**
+ * HOOK: useAuth
+ * Ini adalah 'jembatan' utama untuk komponen DetailPage.tsx
+ * Menyatukan data profile agar mudah dipanggil sebagai 'user'.
+ */
+export const useAuth = () => {
+  const { data: user, isLoading, error } = useMe();
+  
+  return {
+    user,
+    isLoading,
+    error,
+    isAuthenticated: !!user,
+  };
+};
+
+// Alias untuk fleksibilitas
 export const useProfile = useMe;
 
 /**
  * HOOK: UPDATE PROFILE
- * Menangani perubahan data user (username, email, dll)
+ * Menangani perubahan data user (username, email, skin_type, dll)
  */
 export const useUpdateProfile = () => {
   const queryClient = useQueryClient();
@@ -60,13 +78,11 @@ export const useUpdateProfile = () => {
       return res.data;
     },
     onSuccess: () => {
-      // Refresh data user agar konsisten di seluruh aplikasi
+      // Refresh data user agar konsisten di seluruh aplikasi (Glow-Check terupdate)
       queryClient.invalidateQueries({ queryKey: ["auth-me"] });
-      
-      // ALERT DIHAPUS agar tidak double dengan Sonner di ProfileEditPage.tsx
     },
-   onError: () => {
-      // ALERT DIHAPUS agar pesan error ditangani oleh Sonner di komponen
+    onError: (error: any) => {
+       console.error("Gagal update profil:", error);
     }
   });
 };

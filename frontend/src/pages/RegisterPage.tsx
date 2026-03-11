@@ -8,10 +8,10 @@ import { Mail, Lock, User, Loader2 } from "lucide-react";
 import Swal from "sweetalert2"; // 1. IMPORT SWEETALERT
 
 // 1. IMPORT ASSET GAMBAR
-import bg1 from "../assets/bg1.png";
-import bg2 from "../assets/bg2.png";
-import bg3 from "../assets/bg3.png";
-import bg4 from "../assets/bg4.png";
+import bg1 from "../assets/bg1.jpg";
+import bg2 from "../assets/bg2.jpg";
+import bg3 from "../assets/bg3.jpg";
+import bg4 from "../assets/bg4.jpg";
 
 // Shadcn Components
 import { Button } from "@/components/ui/button";
@@ -44,12 +44,13 @@ export default function RegisterPage() {
     });
   };
 
-  const slides = [
-    { url: bg1, title: "Join the Magic", desc: "Create your account and explore the ultimate beauty directory." },
-    { url: bg2, title: "Your Beauty Space", desc: "Manage and curate premium beauty products with ease." },
-    { url: bg3, title: "Pure Elegance", desc: "A modern and intuitive experience for beauty enthusiasts." },
-    { url: bg4, title: "GlowUp.Space Portal", desc: "Start your professional journey with us today." }
-  ];
+    const slides = [
+        { url: bg1, title: "Your Personal Skin Guide", desc: "Temukan kecocokan produk Glad2Glow melalui tes tipe kulit yang dirancang khusus untukmu." },
+        { url: bg2, title: "Smart Product Matching", desc: "Sistem rekomendasi kami bekerja untuk memastikan setiap produk yang kamu pilih memberikan hasil maksimal." },
+        { url: bg3, title: "Beauty Review Hub", desc: "Baca pengalaman nyata pengguna Glad2Glow dan bagikan perjalanan skin journey milikmu." },
+        { url: bg4, title: "GlowUp.Space Experience", desc: "Solusi modern untuk manajemen perawatan diri dan konsultasi tipe kulit dalam satu platform." }
+      ];
+
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -105,7 +106,7 @@ export default function RegisterPage() {
             
             <div className="absolute bottom-24 left-16 z-20 text-white max-w-lg">
               <p className="text-xs font-bold tracking-[0.4em] uppercase mb-2 text-white/70">
-                Glow Up.Space Directory
+                Glad2Glow Directory
               </p>
               <h2 className="text-6xl font-serif italic mb-4 leading-none">{slide.title}</h2>
               <div className="h-1 w-20 bg-[#D6B4FC] mb-6"></div>
