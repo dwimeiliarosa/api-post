@@ -13,6 +13,7 @@ import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+// PERBAIKAN: Mengganti lucide-material-react menjadi lucide-react sesuai error di gambar
 import { 
   Plus, 
   Trash2, 
@@ -30,7 +31,7 @@ import {
   Filter,
   FileSpreadsheet,
   FileText
-} from "lucide-material-react";
+} from "lucide-react"; 
 import api from "@/api/axiosInstance";
 
 // Assets
@@ -48,10 +49,10 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(8); 
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState(""); // State untuk debounce
+  const [debouncedSearch, setDebouncedSearch] = useState(""); 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   
-  // --- NEW STATE: SKIN TYPE FILTER & REPORT CATEGORY ---
+  // --- STATE: SKIN TYPE FILTER & REPORT CATEGORY ---
   const [selectedSkinFilter, setSelectedSkinFilter] = useState<string | null>(null);
   const [reportCategory, setReportCategory] = useState("all");
 
@@ -59,25 +60,23 @@ export default function DashboardPage() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchTerm);
-    }, 500); // Menunggu 500ms setelah user berhenti mengetik
+    }, 500); 
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  // --- LOGIKA FETCHING DINAMIS ---
+  // --- LOGIKA FETCHING ---
   const { data: userData, isLoading: isUserLoading } = useMe();
   const { data: categories } = useCategories();
   
-  // Deteksi apakah sedang mencari atau memfilter
   const isFiltering = !!activeCategory || !!debouncedSearch || !!selectedSkinFilter;
   const effectiveLimit = isFiltering ? 100 : limit;
   const effectivePage = isFiltering ? 1 : currentPage;
 
-  // Memasukkan debouncedSearch ke hook usePosts
   const { data: postResponse, isLoading: isPostsLoading } = usePosts(
     effectivePage, 
     effectiveLimit,
     activeCategory ? categories?.find((c: any) => c.name === activeCategory)?.id : undefined,
-    debouncedSearch // <-- Data pencarian dikirim ke hook
+    debouncedSearch 
   );
   
   const { data: favs } = useMyFavorites();
@@ -89,14 +88,10 @@ export default function DashboardPage() {
   const posts = postResponse?.data || [];
   const meta = postResponse?.meta;
   const totalPages = meta?.totalPages || 1;
-  const totalData = meta?.totalData || 0;
 
-  // --- LOGIKA FILTER (Server-side search + Client-side Skin Filter) ---
+  // --- LOGIKA FILTER ---
   const displayPosts = useMemo(() => {
-    // Karena judul & kategori sudah difilter di BACKEND via 'debouncedSearch',
-    // di sini kita hanya perlu memfilter manual untuk 'Skin Type' jika terpilih.
     if (!selectedSkinFilter) return posts;
-    
     return posts.filter((post: any) => 
       post.suitable_for?.toLowerCase() === selectedSkinFilter.toLowerCase()
     );
@@ -143,23 +138,13 @@ export default function DashboardPage() {
       } else {
         const doc = new jsPDF();
         doc.text(`Laporan Produk: ${reportCategory.toUpperCase()}`, 14, 15);
-        
-        const tableRows = mappedData.map((item: any) => [
-          item.No,
-          item.Nama,
-          item["Tipe Kulit"],
-          item.Kategori,
-          item.Rating,
-          item.Favorit
-        ]);
-
+        const tableRows = mappedData.map((item: any) => [item.No, item.Nama, item["Tipe Kulit"], item.Kategori, item.Rating, item.Favorit]);
         autoTable(doc, {
           startY: 25,
           head: [["No", "Nama Produk", "Tipe Kulit", "Kategori", "Rating", "Favorit"]],
           body: tableRows,
           headStyles: { fillColor: [150, 126, 250] },
         });
-
         doc.save(`Laporan_${reportCategory}_${new Date().getTime()}.pdf`);
       }
     } catch (error) {
@@ -220,24 +205,16 @@ export default function DashboardPage() {
   }
 
   return (
-    <div
-      className="min-h-screen font-sans pb-20 bg-fixed bg-center bg-cover"
-      style={{ backgroundImage: `url(${myBackgroundImage})` }}
-    >
+    <div className="min-h-screen font-sans pb-20 bg-fixed bg-center bg-cover" style={{ backgroundImage: `url(${myBackgroundImage})` }}>
       {/* HEADER */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-purple-100 px-8 py-4 shadow-sm">
         <div className="max-w-6xl mx-auto flex justify-between items-center gap-4">
           <div className="flex items-center gap-6 flex-1">
             <div className="flex items-center gap-2 cursor-pointer group shrink-0" onClick={() => { navigate("/dashboard"); setActiveCategory(null); setSearchTerm(""); setSelectedSkinFilter(null); setCurrentPage(1); }}>
-              <div
-                className="p-2 rounded-xl text-white shadow-lg group-hover:rotate-12 transition-transform"
-                style={{ background: "linear-gradient(135deg, #ff99d8 0%, #967EFA 100%)" }}
-              >
+              <div className="p-2 rounded-xl text-white shadow-lg group-hover:rotate-12 transition-transform" style={{ background: "linear-gradient(135deg, #ff99d8 0%, #967EFA 100%)" }}>
                 <ShoppingBag size={20} />
               </div>
-              <h1 className="hidden sm:block text-2xl font-black tracking-tighter uppercase italic" style={{ color: "#967EFA" }}>
-                Glad2Glow
-              </h1>
+              <h1 className="hidden sm:block text-2xl font-black tracking-tighter uppercase italic" style={{ color: "#967EFA" }}>Glad2Glow</h1>
             </div>
 
             <div className="relative flex-1 max-w-md hidden md:block">
@@ -255,41 +232,24 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <div className="hidden lg:flex flex-col items-end mr-2">
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Ready to glow,</span>
-              <span className="text-sm font-black text-[#967EFA] italic tracking-tighter">
-                {user?.username || "Beautiful"} ✨
-              </span>
+              <span className="text-sm font-black text-[#967EFA] italic tracking-tighter">{user?.username || "Beautiful"} ✨</span>
             </div>
 
             {user?.role === 'admin' && (
               <div className="flex items-center gap-2 bg-zinc-50 p-1.5 rounded-full border border-purple-100 mr-2">
-                <select 
-                  className="bg-transparent text-[10px] font-bold uppercase px-2 outline-none text-[#967EFA]"
-                  value={reportCategory}
-                  onChange={(e) => setReportCategory(e.target.value)}
-                >
+                <select className="bg-transparent text-[10px] font-bold uppercase px-2 outline-none text-[#967EFA]" value={reportCategory} onChange={(e) => setReportCategory(e.target.value)}>
                   <option value="all">All Category</option>
-                  {categories?.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
+                  {categories?.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
-
                 <div className="flex gap-1 border-l pl-2 border-purple-200">
-                  <Button onClick={() => handleExport('excel')} variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50 rounded-full">
-                    <FileSpreadsheet size={16} />
-                  </Button>
-                  <Button onClick={() => handleExport('pdf')} variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-50 rounded-full">
-                    <FileText size={16} />
-                  </Button>
+                  <Button onClick={() => handleExport('excel')} variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50 rounded-full"><FileSpreadsheet size={16} /></Button>
+                  <Button onClick={() => handleExport('pdf')} variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-50 rounded-full"><FileText size={16} /></Button>
                 </div>
               </div>
             )}
 
             {user?.role === 'admin' && (
-              <Button 
-                onClick={() => navigate("/create-post")} 
-                className="text-white rounded-full px-6 shadow-lg font-bold" 
-                style={{ background: "linear-gradient(to right, #ff99d8, #967EFA)" }}
-              >
+              <Button onClick={() => navigate("/create-post")} className="text-white rounded-full px-6 shadow-lg font-bold" style={{ background: "linear-gradient(to right, #ff99d8, #967EFA)" }}>
                 <Plus className="mr-2 h-4 w-4" /> Post
               </Button>
             )}
@@ -300,12 +260,8 @@ export default function DashboardPage() {
               </Button>
             )}
 
-            <Button variant="ghost" onClick={() => navigate("/user/profile")} className="rounded-full h-11 w-11 p-0 bg-zinc-100 text-zinc-600">
-              <User size={22} />
-            </Button>
-            <Button variant="ghost" onClick={handleLogout} className="text-zinc-400 hover:text-red-500 rounded-full h-11 w-11 p-0">
-              <LogOut size={22} />
-            </Button>
+            <Button variant="ghost" onClick={() => navigate("/user/profile")} className="rounded-full h-11 w-11 p-0 bg-zinc-100 text-zinc-600"><User size={22} /></Button>
+            <Button variant="ghost" onClick={handleLogout} className="text-zinc-400 hover:text-red-500 rounded-full h-11 w-11 p-0"><LogOut size={22} /></Button>
           </div>
         </div>
       </header>
@@ -318,9 +274,7 @@ export default function DashboardPage() {
               <div className="bg-gradient-to-r from-pink-400 to-purple-50 p-2 rounded-xl text-white shadow-lg"><Sparkles size={20} /></div>
               <div>
                 <h2 className="text-xl font-black text-zinc-800 uppercase italic tracking-tighter">Recommended <span className="text-[#967EFA]">For You</span></h2>
-                <p className="text-[10px] font-bold text-white uppercase tracking-widest">
-                  Tailored for your {user?.skin_type} skin ✨
-                </p>
+                <p className="text-[10px] font-bold text-white uppercase tracking-widest">Tailored for your {user?.skin_type} skin ✨</p>
               </div>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
@@ -353,7 +307,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* PRODUCTS SECTION + SKIN FILTER */}
+        {/* PRODUCTS SECTION */}
         <section className="bg-white/70 backdrop-blur-xl rounded-[3rem] p-8 shadow-2xl border border-white/40">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 px-2 gap-4">
             <div className="flex flex-col gap-4 w-full">
@@ -364,9 +318,7 @@ export default function DashboardPage() {
                   </h2>
                   <div className="flex items-center gap-2 mt-2">
                     <div className="h-1.5 w-12 rounded-full" style={{ background: "linear-gradient(to right, #ff99d8, #967EFA)" }}></div>
-                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2">
-                      Total: {displayPosts.length} Items found
-                    </span>
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2">Total: {displayPosts.length} Items found</span>
                   </div>
                 </div>
 
@@ -380,6 +332,7 @@ export default function DashboardPage() {
                 )}
               </div>
 
+              {/* SKIN FILTER BAR */}
               <div className="flex items-center gap-2 flex-wrap bg-purple-50/50 p-3 rounded-2xl border border-purple-100">
                 <div className="flex items-center gap-2 mr-2 border-r border-purple-200 pr-3">
                   <Filter size={14} className="text-[#967EFA]" />
@@ -388,15 +341,8 @@ export default function DashboardPage() {
                 {['Sensitive', 'Oily', 'Combination', 'Dry', 'Normal'].map((skin) => (
                   <button
                     key={skin}
-                    onClick={() => {
-                      setSelectedSkinFilter(selectedSkinFilter === skin ? null : skin);
-                      setCurrentPage(1);
-                    }}
-                    className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${
-                      selectedSkinFilter === skin 
-                        ? "bg-[#967EFA] text-white border-[#967EFA] shadow-md scale-105" 
-                        : "bg-white text-zinc-500 border-zinc-200 hover:border-[#967EFA] hover:text-[#967EFA]"
-                    }`}
+                    onClick={() => { setSelectedSkinFilter(selectedSkinFilter === skin ? null : skin); setCurrentPage(1); }}
+                    className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${selectedSkinFilter === skin ? "bg-[#967EFA] text-white border-[#967EFA] shadow-md scale-105" : "bg-white text-zinc-500 border-zinc-200 hover:border-[#967EFA] hover:text-[#967EFA]"}`}
                   >
                     {skin}
                   </button>
@@ -419,12 +365,12 @@ export default function DashboardPage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {displayPosts.map((post: any) => {
+                  // Tambahkan optional chaining (?.) untuk menghindari error jika data favs/post null
                   const isFavorited = favs?.some((f: any) => (f.post_id || f.post?.id || f.id) === post.id);
                   return (
                     <Card key={post.id} className="border-none shadow-none group bg-white rounded-[2rem] overflow-hidden hover:shadow-2xl transition-all duration-500 cursor-pointer" onClick={() => navigate(`/detail/${post.id}`)}>
                       <div className="aspect-[4/5] overflow-hidden relative">
                         <img src={post.gambar} alt={post.judul} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                        
                         {user?.role === 'admin' ? (
                           <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 translate-x-12 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all">
                             <Button size="icon" variant="secondary" className="h-9 w-9 rounded-xl" onClick={(e) => { e.stopPropagation(); navigate(`/edit-post/${post.id}`); }}><Edit size={16}/></Button>
@@ -432,14 +378,7 @@ export default function DashboardPage() {
                           </div>
                         ) : (
                           <div className="absolute top-4 left-4 z-20">
-                            <button 
-                              onClick={(e) => { 
-                                e.preventDefault(); 
-                                e.stopPropagation(); 
-                                toggleFavorite.mutate(post.id); 
-                              }} 
-                              className={`p-2.5 rounded-full shadow-lg transition-all ${isFavorited ? "bg-red-500 text-white" : "bg-white/80 text-zinc-400"}`}
-                            >
+                            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFavorite.mutate(post.id); }} className={`p-2.5 rounded-full shadow-lg transition-all ${isFavorited ? "bg-red-500 text-white" : "bg-white/80 text-zinc-400"}`}>
                               <Heart size={18} fill={isFavorited ? "currentColor" : "none"} />
                             </button>
                           </div>
@@ -448,16 +387,13 @@ export default function DashboardPage() {
                       <CardContent className="p-5">
                         <CardTitle className="text-lg font-bold text-zinc-800 line-clamp-1 uppercase tracking-tighter italic group-hover:text-[#d857a6] transition-colors">{post.judul}</CardTitle>
                         <div className="flex gap-2 items-center mt-1 flex-wrap">
+                          {/* Optional chaining agar aman jika category null */}
                           {(post.category?.name || post.category_name) && (
-                             <span className="text-[9px] bg-purple-50 text-[#967EFA] px-2 py-0.5 rounded-md font-black uppercase tracking-wider">
-                               {post.category?.name || post.category_name}
-                             </span>
+                            <span className="text-[9px] bg-purple-50 text-[#967EFA] px-2 py-0.5 rounded-md font-black uppercase tracking-wider">
+                              {post.category?.name || post.category_name}
+                            </span>
                           )}
-                          {post.suitable_for && (
-                            <span className="text-[8px] bg-green-50 text-green-600 px-2 py-0.5 rounded-md font-black uppercase tracking-wider border border-green-100">
-                               For {post.suitable_for}
-                             </span>
-                          )}
+                          {post.suitable_for && <span className="text-[8px] bg-green-50 text-green-600 px-2 py-0.5 rounded-md font-black uppercase tracking-wider border border-green-100">For {post.suitable_for}</span>}
                         </div>
                         <p className="text-xs text-zinc-500 line-clamp-2 mt-2 leading-relaxed">{post.isi}</p>
                       </CardContent>
@@ -466,7 +402,6 @@ export default function DashboardPage() {
                 })}
               </div>
 
-              {/* Tampilkan Pagination hanya jika tidak sedang memfilter/mencari (karena filter menampilkan semua hasil) */}
               {!isFiltering && totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mt-16 pb-4">
                   <div className="flex items-center gap-2">

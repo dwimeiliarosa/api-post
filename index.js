@@ -11,6 +11,7 @@ const postRoutes = require('./routes/postRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
+const commentRoutes = require('./routes/commentRoutes');
 
 const app = express();
 
@@ -59,6 +60,8 @@ app.use('/api/favorites', favoriteRoutes); // Favorit dipisah agar modular
 app.use('/api', postRoutes);     // PostRoutes sekarang bersih dari log internal
 
 app.use('/api/reviews', reviewRoutes);
+
+app.use('/api/comments', commentRoutes);
 
 // Debug: Cek Rute Aktif
 app._router.stack.forEach(function(r) {

@@ -9,20 +9,25 @@ import { LoginFormValues } from "@/schemas/auth";
 export const useLogin = () => {
   return useMutation({
     mutationFn: async (credentials: LoginFormValues) => {
+      // Mengirim kredensial ke endpoint login
       const response = await api.post('/login', credentials);
       return response.data;
     },
     onSuccess: (data) => {
+      // PERBAIKAN: Memastikan token ada sebelum disimpan
       if (data.accessToken) {
         localStorage.setItem("accessToken", data.accessToken);
         localStorage.setItem("refreshToken", data.refreshToken);
-        // Menggunakan window.location untuk hard reset state aplikasi setelah login
-        window.location.href = "/dashboard";
+        
+        // PERBAIKAN: Menggunakan replace agar history login dibersihkan 
+        // dan memaksa aplikasi memuat state baru di Dashboard
+        window.location.replace("/dashboard");
       }
     },
     onError: (error: any) => {
-      // Menggunakan notifikasi standar jika belum ada Toast di login
-      alert(error.response?.data?.message || "Login gagal, silakan cek kembali email/password anda.");
+      // Menampilkan pesan error spesifik dari backend jika tersedia
+      const message = error.response?.data?.message || "Login gagal, silakan cek kembali email/password anda.";
+      alert(message);
     }
   });
 };
@@ -41,6 +46,7 @@ export const useMe = () => {
       console.log("Data User Profile:", res.data.user);
       return res.data.user;
     },
+    // Hanya berjalan jika ada token di storage
     enabled: !!localStorage.getItem("accessToken"),
     staleTime: 1000 * 60 * 5, // Cache selama 5 menit
   });

@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginFormValues } from "@/lib/validations/auth";
-import api from "@/api/axiosInstance";
 import { useNavigate } from "react-router-dom";
 import { Mail, Lock, Loader2 } from "lucide-react";
 import Swal from "sweetalert2";
+
+// Import Hook Autentikasi yang sudah diperbaiki
+import { useLogin } from "@/hooks/useAuth";
 
 // ASSET GAMBAR
 import bg1 from "../assets/bg1.jpg";
@@ -21,7 +23,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 export default function LoginPage() {
   const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // PERBAIKAN: Menggunakan useLogin hook untuk manajemen state & API
+  const { mutate: login, isPending: isSubmitting } = useLogin();
 
   // Helper Toast
   const showToast = (message: string, type: 'success' | 'error') => {
@@ -44,12 +48,12 @@ export default function LoginPage() {
     });
   };
 
-    const slides = [
-        { url: bg1, title: "Your Personal Skin Guide", desc: "Temukan kecocokan produk Glad2Glow melalui tes tipe kulit yang dirancang khusus untukmu." },
-        { url: bg2, title: "Smart Product Matching", desc: "Sistem rekomendasi kami bekerja untuk memastikan setiap produk yang kamu pilih memberikan hasil maksimal." },
-        { url: bg3, title: "Beauty Review Hub", desc: "Baca pengalaman nyata pengguna Glad2Glow dan bagikan perjalanan skin journey milikmu." },
-        { url: bg4, title: "GlowUp.Space Experience", desc: "Solusi modern untuk manajemen perawatan diri dan konsultasi tipe kulit dalam satu platform." }
-      ];
+  const slides = [
+    { url: bg1, title: "Your Personal Skin Guide", desc: "Temukan kecocokan produk Glad2Glow melalui tes tipe kulit yang dirancang khusus untukmu." },
+    { url: bg2, title: "Smart Product Matching", desc: "Sistem rekomendasi kami bekerja untuk memastikan setiap produk yang kamu pilih memberikan hasil maksimal." },
+    { url: bg3, title: "Beauty Review Hub", desc: "Baca pengalaman nyata pengguna Glad2Glow dan bagikan perjalanan skin journey milikmu." },
+    { url: bg4, title: "GlowUp.Space Experience", desc: "Solusi modern untuk manajemen perawatan diri dan konsultasi tipe kulit dalam satu platform." }
+  ];
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -63,35 +67,29 @@ export default function LoginPage() {
     return () => clearInterval(timer);
   }, [slides.length]);
 
-  const onSubmit = async (data: LoginFormValues) => {
-    setIsSubmitting(true);
-    try {
-      const response = await api.post("/login", data);
-      localStorage.setItem("accessToken", response.data.accessToken);
-      localStorage.setItem("refreshToken", response.data.refreshToken);
+  // PERBAIKAN: Fungsi onSubmit yang didelegasikan ke hook useLogin
+  const onSubmit = (data: LoginFormValues) => {
+    login(data, {
+      onSuccess: (responseData) => {
+        const loginName = responseData.username || "Glowvers"; 
+        showToast(`Login berhasil! Halo, ${loginName}`, "success");
+        // Navigasi sudah ditangani secara otomatis oleh useLogin melalui window.location.replace
+      },
+      onError: (error: any) => {
+        let errorMessage = "Terjadi kesalahan, coba lagi ya!";
+        const status = error.response?.status;
+        const backendMessage = (error.response?.data?.message || "").toString().toLowerCase();
 
-      const loginName = response.data.username || "Glowvers"; 
-      showToast(`Login berhasil! Halo, ${loginName}`, "success");
-      
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 1000); 
-    } catch (error: any) {
-      let errorMessage = "Terjadi kesalahan, coba lagi ya!";
-      const status = error.response?.status;
-      const backendMessage = (error.response?.data?.message || "").toString().toLowerCase();
-
-      if (status === 404 || backendMessage.includes("email") || backendMessage.includes("tidak ditemukan")) {
-        errorMessage = "Email-nya nggak terdaftar nih, ayo registrasi dulu! 📝";
-      } else if (status === 401 || backendMessage.includes("password") || backendMessage.includes("salah")) {
-        errorMessage = "Yah... :( Password-nya salah, ayo coba lagi! 🔑";
-      } else {
-        errorMessage = error.response?.data?.message || errorMessage;
+        if (status === 404 || backendMessage.includes("email") || backendMessage.includes("tidak ditemukan")) {
+          errorMessage = "Email-nya nggak terdaftar nih, ayo registrasi dulu! 📝";
+        } else if (status === 401 || backendMessage.includes("password") || backendMessage.includes("salah")) {
+          errorMessage = "Yah... :( Password-nya salah, ayo coba lagi! 🔑";
+        } else {
+          errorMessage = error.response?.data?.message || errorMessage;
+        }
+        showToast(errorMessage, "error");
       }
-
-      showToast(errorMessage, "error");
-      setIsSubmitting(false); 
-    }
+    });
   };
 
   return (
@@ -171,7 +169,6 @@ export default function LoginPage() {
           </form>
         </Form>
 
-        {/* --- TOMBOL REGISTRASI DI SINI --- */}
         <div className="mt-12 text-center">
           <p className="text-[10px] font-bold text-zinc-400 tracking-[0.2em] uppercase">
             Don't have an account yet?{" "}

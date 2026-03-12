@@ -18,3 +18,13 @@ export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
 }
+
+export interface Comment {
+  id: number;
+  post_id: number;
+  user_id: number;
+  username: string;
+  avatar?: string; // Tambahkan baris ini
+  isi_komentar: string;
+  created_at: string;
+}

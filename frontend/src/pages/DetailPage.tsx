@@ -2,9 +2,13 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePosts } from "@/hooks/usePosts";
 import { useReviews, useAddReview } from "@/hooks/useReview";
+import { useComments, useAddComment, useDeleteComment } from "@/hooks/useComments"; 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, Star, Trash2, Loader2, Sparkles, AlertCircle } from "lucide-react"; 
+import { 
+  ChevronLeft, Star, Trash2, Loader2, Sparkles, 
+  AlertCircle, MessageSquare, Send, User 
+} from "lucide-react"; 
 import myBackgroundImage from "@/assets/bg-dashboard.png";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -30,6 +34,9 @@ export default function DetailPage() {
   const [userSkinType, setUserSkinType] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
+
+  // State baru untuk komentar
+  const [newComment, setNewComment] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken"); 
@@ -67,6 +74,11 @@ export default function DetailPage() {
   const { data: reviews, isLoading: isReviewLoading } = useReviews(postId);
   const addReviewMutation = useAddReview();
 
+  // Integrasi Hook Komentar
+  const { data: comments, isLoading: isCommentLoading } = useComments(postId);
+  const addCommentMutation = useAddComment();
+  const deleteCommentMutation = useDeleteComment();
+
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -74,19 +86,11 @@ export default function DetailPage() {
   const product = (Array.isArray(posts) ? posts : (posts as any)?.data || [])
     ?.find((p: any) => p.id.toString() === id);
 
-  // LOGIKA MATCHING (Glow-Check)
   const isCompatible = Boolean(
     userSkinType && 
     product?.suitable_for && 
     userSkinType.toLowerCase() === product.suitable_for.toLowerCase()
   );
-
-  // Pindahkan log ke sini agar variabel sudah didefinisikan
-  console.log("DEBUG GLOW-CHECK:", {
-    userSkin: userSkinType,
-    productSuitable: product?.suitable_for,
-    matched: isCompatible
-  });
 
   const handleSubmitReview = () => {
     if (rating === 0) return toast.error("Ratingnya dulu ya, Kak! ⭐");
@@ -107,6 +111,23 @@ export default function DetailPage() {
         queryClient.invalidateQueries({ queryKey: ["reviews", postId] });
       },
     });
+  };
+
+  const handleSubmitComment = () => {
+    if (!newComment.trim()) return toast.error("Komentarnya diisi dulu ya! 💬");
+    
+    addCommentMutation.mutate(
+      { post_id: postId, isi_komentar: newComment },
+      {
+        onSuccess: () => {
+          setNewComment("");
+        },
+      }
+    );
+  };
+
+  const handleDeleteComment = (commentId: number) => {
+    deleteCommentMutation.mutate({ id: commentId, post_id: postId });
   };
 
   const confirmDelete = async () => {
@@ -162,7 +183,6 @@ export default function DetailPage() {
               {product.judul}
             </h1>
 
-            {/* MAGIC GLOW-CHECK */}
             <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-700">
               {userSkinType && product.suitable_for ? (
                 <div className={`p-4 rounded-2xl flex items-center gap-3 border ${
@@ -268,6 +288,76 @@ export default function DetailPage() {
                 </div>
               ))
             )}
+
+            {/* GLOW DISCUSSION SECTION */}
+            <div className="mt-10 border-t border-white/20 pt-10">
+              <h3 className="text-xl font-black text-zinc-800 uppercase italic tracking-tighter mb-6 flex items-center gap-2">
+                <MessageSquare className="text-pink-400" size={24} /> Glow Discussion ({comments?.length || 0})
+              </h3>
+
+              {/* Box Input Komentar */}
+              <div className="bg-white/40 backdrop-blur-md rounded-3xl p-4 mb-8 flex items-center gap-3 border border-white/60 shadow-inner">
+                <input 
+                  type="text" 
+                  placeholder="Tanya detail produk atau diskusi di sini..." 
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  className="flex-1 bg-transparent border-none focus:ring-0 text-sm px-4 placeholder:text-zinc-400 outline-none"
+                />
+                <Button 
+                  onClick={handleSubmitComment}
+                  disabled={addCommentMutation.isPending}
+                  className="rounded-full bg-zinc-800 hover:bg-zinc-700 text-white px-6 h-10 transition-all active:scale-95"
+                >
+                  {addCommentMutation.isPending ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
+                </Button>
+              </div>
+
+              {/* List Diskusi Komentar */}
+              <div className="space-y-4">
+                {isCommentLoading ? (
+                  <div className="flex justify-center p-10"><Loader2 className="animate-spin text-pink-400" /></div>
+                ) : comments?.length === 0 ? (
+                  <p className="text-center text-zinc-400 italic text-sm py-10 bg-white/20 rounded-3xl">Jadilah yang pertama memulai diskusi! 🌸</p>
+                ) : (
+                  comments?.map((com) => (
+                    <div key={com.id} className="flex gap-4 group animate-in fade-in slide-in-from-bottom-2 duration-500">
+                      {/* PERBAIKAN: Fallback Avatar menggunakan Logic yang disarankan */}
+                      <div className="w-10 h-10 rounded-full bg-white border border-pink-100 shadow-sm overflow-hidden flex items-center justify-center flex-shrink-0">
+                        {com.avatar ? (
+                          <img 
+                            src={com.avatar} 
+                            className="w-full h-full object-cover" 
+                            alt={com.username} 
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <User size={20} className="text-zinc-300" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 bg-white/50 backdrop-blur-sm p-4 rounded-2xl rounded-tl-none border border-white/40 shadow-sm relative">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[11px] font-black text-zinc-800 uppercase tracking-tight">{com.username}</span>
+                          {Number(currentUserId) === Number(com.user_id) && (
+                            <button 
+                              onClick={() => handleDeleteComment(com.id)}
+                              className="text-zinc-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-sm text-zinc-600 leading-relaxed">{com.isi_komentar}</p>
+                        <span className="text-[8px] text-zinc-400 mt-2 block uppercase font-bold tracking-widest">
+                          {new Date(com.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

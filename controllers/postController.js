@@ -9,6 +9,75 @@ const getPublicUrl = (fileName) => {
   return `${baseDomain}/${bucket}/${fileName}`;
 };
 
+// Fungsi baru untuk pencarian dengan filter dinamis (Sesuai saran pembimbing)
+const searchPosts = async (req, res) => {
+  try {
+    const { q, sortBy } = req.query;
+    
+    let query = `
+      SELECT p.*, c.name AS category_name, 
+             COALESCE(AVG(r.rating), 0) as avg_rating
+      FROM posts p
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN reviews r ON p.id = r.post_id
+    `;
+
+    let queryParams = [];
+    if (q) {
+      query += ` WHERE p.judul ILIKE $1 OR c.name ILIKE $1`;
+      queryParams.push(`%${q}%`);
+    }
+
+    query += ` GROUP BY p.id, c.name`;
+
+    // Logika Pengelolaan Filter (Rating & Terbaru)
+    if (sortBy === 'rating_high') {
+      query += ` ORDER BY avg_rating DESC`;
+    } else if (sortBy === 'rating_low') {
+      query += ` ORDER BY avg_rating ASC`;
+    } else {
+      query += ` ORDER BY p.created_at DESC`;
+    }
+
+    const result = await pool.query(query, queryParams);
+
+    res.json({
+      status: "success",
+      count: result.rows.length,
+      data: result.rows.map(post => ({
+        ...post,
+        gambar: post.gambar ? getPublicUrl(post.gambar) : null
+      }))
+    });
+  } catch (error) {
+    console.error('❌ ERROR SEARCH POSTS:', error);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// Fungsi baru untuk mengambil semua data tanpa pagination (Sesuai saran pembimbing)
+const getRawAllPosts = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT p.*, c.name AS category_name 
+      FROM posts p 
+      LEFT JOIN categories c ON p.category_id = c.id 
+      ORDER BY p.created_at DESC
+    `);
+    
+    res.json({
+      status: "success",
+      total: result.rows.length,
+      data: result.rows.map(post => ({
+        ...post,
+        gambar: post.gambar ? getPublicUrl(post.gambar) : null
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
 const getAllPosts = async (req, res) => {
   try {
     // 1. Ambil query parameter 'search' dan utilitas pagination
@@ -204,6 +273,8 @@ const toggleFavorite = async (req, res) => {
 };
 
 module.exports = {
+  searchPosts,    // Export fungsi baru
+  getRawAllPosts, // Export fungsi baru
   getAllPosts,
   createPost,
   updatePost,

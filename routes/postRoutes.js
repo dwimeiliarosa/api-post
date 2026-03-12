@@ -1,4 +1,4 @@
-const express = require('express'); // BARIS INI YANG HILANG
+const express = require('express'); 
 const multer = require('multer'); 
 const postController = require('../controllers/postController');
 const { authenticateToken, isAdmin } = require('../middleware/authMiddleware');
@@ -40,6 +40,42 @@ const upload = multer({
  *         description: Berhasil mengambil data
  */
 router.get('/posts', postController.getAllPosts);
+
+/**
+ * @swagger
+ * /posts/all:
+ *   get:
+ *     summary: Ambil semua postingan tanpa pagination (Untuk Admin/Export)
+ *     tags: [Posts]
+ *     responses:
+ *       200:
+ *         description: Berhasil mengambil semua data
+ */
+router.get('/posts/all', postController.getRawAllPosts);
+
+/**
+ * @swagger
+ * /posts/search:
+ *   get:
+ *     summary: Pencarian postingan dengan filter dinamis (Rating/Terbaru)
+ *     tags: [Posts]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Kata kunci judul atau kategori
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [rating_high, rating_low, newest]
+ *         description: Pengelolaan filter urutan
+ *     responses:
+ *       200:
+ *         description: Hasil pencarian ditemukan
+ */
+router.get('/posts/search', postController.searchPosts);
 
 /**
  * @swagger
@@ -130,7 +166,7 @@ router.get('/posts/:id', postController.getPostById);
  *                 type: string
  *               category_id:
  *                 type: integer
- *               suitable_for:             # TAMBAHKAN INI
+ *               suitable_for:
  *                 type: string
  *                 enum: [Oily, Dry, Sensitive, Combination, Normal]
  *               gambar:
@@ -139,13 +175,12 @@ router.get('/posts/:id', postController.getPostById);
  *     responses:
  *       200:
  *         description: Post berhasil diupdate
- *       # ... rest of responses
  */
 router.put(
   '/posts/:id',
   authenticateToken,
   isAdmin,
-  upload.single('gambar'), // Samakan menjadi single agar konsisten
+  upload.single('gambar'), 
   postController.updatePost
 );
 
