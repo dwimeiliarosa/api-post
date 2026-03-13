@@ -35,7 +35,6 @@ export const useAddReview = () => {
     },
     onSuccess: (data) => {
       // Invalidate query agar daftar ulasan langsung terupdate tanpa reload
-      // Kita gunakan postId dari data yang baru dibuat jika tersedia
       const postId = data.data?.post_id;
       if (postId) {
         queryClient.invalidateQueries({ queryKey: ["reviews", postId] });
@@ -49,6 +48,34 @@ export const useAddReview = () => {
       const errorMessage = error.response?.data?.message || "Gagal mengirim review.";
       toast.error(errorMessage);
       console.error("Review Error:", error);
+    }
+  });
+};
+
+// 3. Hook untuk menghapus ulasan (Admin & Pemilik)
+export const useDeleteReview = (postId?: number) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (reviewId: number) => {
+      // Mengarah ke endpoint DELETE /api/reviews/:id
+      const res = await api.delete(`/reviews/${reviewId}`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      // Refresh daftar ulasan agar ulasan yang dihapus langsung hilang dari UI
+      if (postId) {
+        queryClient.invalidateQueries({ queryKey: ["reviews", postId] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      }
+      
+      toast.success(data.message || "Review berhasil dihapus ✨");
+    },
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.message || "Gagal menghapus ulasan.";
+      toast.error(errorMessage);
+      console.error("Delete Review Error:", error);
     }
   });
 };

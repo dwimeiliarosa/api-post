@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNotifications } from "@/hooks/useNotifications";
 
 import Swal from "sweetalert2";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// PERBAIKAN: Mengganti lucide-material-react menjadi lucide-react sesuai error di gambar
 import { 
   Plus, 
   Trash2, 
@@ -30,8 +30,9 @@ import {
   Sparkles,
   Filter,
   FileSpreadsheet,
-  FileText
-} from "lucide-react"; 
+  FileText,
+  Bell 
+} from "lucide-react";
 import api from "@/api/axiosInstance";
 
 // Assets
@@ -105,6 +106,10 @@ export default function DashboardPage() {
       post.suitable_for.toLowerCase() === user.skin_type.toLowerCase()
     ).slice(0, 4);
   }, [posts, user?.skin_type]);
+
+  // --- LOGIKA NOTIFIKASI ---
+  const { data: notifications } = useNotifications();
+  const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
 
   // --- LOGIKA EXPORT ---
   const handleExport = async (type: 'excel' | 'pdf') => {
@@ -260,6 +265,23 @@ export default function DashboardPage() {
               </Button>
             )}
 
+            {/* TOMBOL LONCENG NOTIFIKASI */}
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate("/notifications")} 
+              className="relative rounded-full h-11 w-11 p-0 bg-zinc-100 text-zinc-600 hover:text-[#967EFA] transition-colors"
+            >
+              <Bell size={22} />
+              {unreadCount > 0 && (
+                <span className="absolute top-2 right-2 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-pink-500 text-[8px] font-bold text-white items-center justify-center">
+                    {unreadCount}
+                  </span>
+                </span>
+              )}
+            </Button>
+
             <Button variant="ghost" onClick={() => navigate("/user/profile")} className="rounded-full h-11 w-11 p-0 bg-zinc-100 text-zinc-600"><User size={22} /></Button>
             <Button variant="ghost" onClick={handleLogout} className="text-zinc-400 hover:text-red-500 rounded-full h-11 w-11 p-0"><LogOut size={22} /></Button>
           </div>
@@ -365,7 +387,6 @@ export default function DashboardPage() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {displayPosts.map((post: any) => {
-                  // Tambahkan optional chaining (?.) untuk menghindari error jika data favs/post null
                   const isFavorited = favs?.some((f: any) => (f.post_id || f.post?.id || f.id) === post.id);
                   return (
                     <Card key={post.id} className="border-none shadow-none group bg-white rounded-[2rem] overflow-hidden hover:shadow-2xl transition-all duration-500 cursor-pointer" onClick={() => navigate(`/detail/${post.id}`)}>
@@ -387,7 +408,6 @@ export default function DashboardPage() {
                       <CardContent className="p-5">
                         <CardTitle className="text-lg font-bold text-zinc-800 line-clamp-1 uppercase tracking-tighter italic group-hover:text-[#d857a6] transition-colors">{post.judul}</CardTitle>
                         <div className="flex gap-2 items-center mt-1 flex-wrap">
-                          {/* Optional chaining agar aman jika category null */}
                           {(post.category?.name || post.category_name) && (
                             <span className="text-[9px] bg-purple-50 text-[#967EFA] px-2 py-0.5 rounded-md font-black uppercase tracking-wider">
                               {post.category?.name || post.category_name}

@@ -1,14 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/axiosInstance";
 import { toast } from "sonner";
-import { Comment } from "@/types";
+
+// Kita definisikan ulang Interface Comment di sini agar mendukung parent_id
+// tanpa harus mencari file @/types/index.ts
+export interface Comment {
+  id: number;
+  post_id: number;
+  user_id: number;
+  username: string;
+  avatar?: string;
+  isi_komentar: string;
+  parent_id?: number | null; // Tambahan untuk fitur balasan
+  created_at: string;
+}
 
 // Hook untuk mengambil daftar komentar
 export const useComments = (postId: number) => {
   return useQuery<Comment[]>({
     queryKey: ["comments", postId],
     queryFn: async () => {
-      // PERBAIKAN: Menggunakan /post/ bukan /product/ sesuai commentRoutes.js
+      // Menggunakan /post/ sesuai dengan konfigurasi backend kamu
       const res = await api.get(`/comments/post/${postId}`);
       return res.data.data;
     },
@@ -16,20 +28,26 @@ export const useComments = (postId: number) => {
   });
 };
 
-// Hook untuk menambah komentar
+// Hook untuk menambah komentar (SEKARANG MENDUKUNG BALASAN)
 export const useAddComment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (newComment: { post_id: number; isi_komentar: string }) => {
+    // PERBAIKAN: Menambahkan parent_id ke dalam parameter mutationFn
+    mutationFn: async (newComment: { 
+      post_id: number; 
+      isi_komentar: string; 
+      parent_id?: number | null 
+    }) => {
       const res = await api.post("/comments", newComment);
       return res.data;
     },
     onSuccess: (res) => {
-      // Mengambil post_id dari response backend untuk refresh data secara spesifik
+      // Mengambil post_id dari response backend untuk refresh data
       const postId = res.data?.post_id;
       queryClient.invalidateQueries({ queryKey: ["comments", postId] });
-      toast.success("Komentar berhasil dikirim! 💬✨");
+      // Pesan sukses otomatis ditangani di DetailPage, 
+      // tapi toast di sini juga tetap aman.
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || "Gagal mengirim komentar.");
@@ -37,7 +55,7 @@ export const useAddComment = () => {
   });
 };
 
-// Hook untuk menghapus komentar (DIBUTUHKAN OLEH DetailPage.tsx)
+// Hook untuk menghapus komentar
 export const useDeleteComment = () => {
   const queryClient = useQueryClient();
 

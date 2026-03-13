@@ -12,6 +12,7 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const commentRoutes = require('./routes/commentRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
@@ -62,6 +63,8 @@ app.use('/api', postRoutes);     // PostRoutes sekarang bersih dari log internal
 app.use('/api/reviews', reviewRoutes);
 
 app.use('/api/comments', commentRoutes);
+
+app.use('/api/notifications', notificationRoutes);
 
 // Debug: Cek Rute Aktif
 app._router.stack.forEach(function(r) {

@@ -9,6 +9,7 @@ import CreatePost from "./pages/CreatePost";
 import EditPost from "./pages/EditPost";
 import FavoritesPage from "./pages/FavoritesPage";
 import LandingPage from "./pages/LandingPage";
+import NotificationPage from "./pages/NotificationPage"; // <--- 1. IMPORT HALAMAN BARU
 
 // Import Profile
 import ProfilePage from "./pages/user/ProfilePage";
@@ -41,21 +42,22 @@ function App() {
           <Route path="/category/:id" element={<CategoryPage />} />
           <Route path="/detail/:id" element={<DetailPage />} />
 
-          {/* --- User Routes (SINKRONISASI DI SINI) --- */}
-          {/* Route utama untuk halaman Favorit sesuai permintaan Dashboard */}
+          {/* --- User Routes --- */}
           <Route path="/user/favorites" element={<FavoritesPage />} />
           <Route path="/user/profile" element={<ProfilePage />} />
           <Route path="/user/profile/edit" element={<ProfileEditPage />} />
+          
+          {/* 2. ROUTE NOTIFIKASI DI SINI */}
+          <Route path="/notifications" element={<NotificationPage />} />
 
           {/* --- Admin/Post Management Routes --- */}
           <Route path="/create-post" element={<CreatePost />} />
           <Route path="/edit-post/:id" element={<EditPost />} />
 
           {/* --- Fallback & Safety Routes --- */}
-          {/* Jika tidak sengaja mengakses /favorites tanpa /user, arahkan ke path yang benar */}
           <Route path="/favorites" element={<Navigate to="/user/favorites" />} />
           
-          {/* Catch-all: Menangani URL yang tidak terdaftar agar tidak muncul layar putih */}
+          {/* Catch-all: Menangani URL yang tidak terdaftar */}
           <Route path="*" element={<Navigate to="/login" />} />
         </Routes>
       </BrowserRouter>
